@@ -1,0 +1,23 @@
+[
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "propertyId", "type": "uint256" },
+      { "internalType": "uint256", "name": "shares", "type": "uint256" }
+    ],
+    "name": "invest",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "propertyId", "type": "uint256" },
+      { "internalType": "address", "name": "to", "type": "address" },
+      { "internalType": "uint256", "name": "shares", "type": "uint256" }
+    ],
+    "name": "transferShares",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

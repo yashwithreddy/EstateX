@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family: "Sora", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top right, #dbeafe 0, #f8fafc 45%, #eef2ff 100%);
+  color: #0f172a;
+}
+
+.card {
+  @apply rounded-2xl border border-slate-200 bg-white/90 shadow-sm;
+}
+
+.transition-soft {
+  transition: all 200ms ease;
+}

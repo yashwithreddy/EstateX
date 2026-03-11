@@ -1,0 +1,39 @@
+# Python
+backend/.venv/
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/estatex.db
+backend/.env
+
+# SQLite DB at root
+estatex.db
+*.db
+
+# Node
+frontend/node_modules/
+blockchain/node_modules/
+
+# ML artifacts (large binary files)
+backend/ml/artifacts/*.joblib
+
+# Uploads
+backend/uploads/*
+uploads/*
+!backend/uploads/.gitkeep
+!uploads/.gitkeep
+
+# OS
+.DS_Store
+*.DS_Store
+
+# VS Code history extension
+.history/
+
+# Vite build
+frontend/dist/
+
+# Hardhat
+blockchain/cache/
+blockchain/artifacts/
