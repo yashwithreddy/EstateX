@@ -2,9 +2,10 @@ require("dotenv").config();
 const { ethers } = require("ethers");
 
 const abi = [
-  "function registerProperty(uint256 propertyId,uint256 totalShares,bytes32 titleHash,bytes32 ownershipHash)",
-  "function invest(uint256 propertyId,uint256 shares)",
-  "function transferShares(uint256 propertyId,address to,uint256 shares)",
+  "function createProperty(uint256 propertyId,uint256 totalShares)",
+  "function buyShares(uint256 propertyId,address investor,uint256 shares)",
+  "function transferShares(uint256 propertyId,address from,address to,uint256 shares)",
+  "function payout(uint256 propertyId,address investor,uint256 amount)",
 ];
 
 async function main() {
@@ -24,15 +25,18 @@ async function main() {
 
   let tx;
 
-  if (command === "registerProperty") {
+  if (command === "registerProperty" || command === "createProperty") {
     const [propertyId, totalShares] = args;
-    tx = await contract.registerProperty(propertyId, totalShares, ethers.ZeroHash, ethers.ZeroHash);
-  } else if (command === "invest") {
-    const [propertyId, , shares] = args;
-    tx = await contract.invest(propertyId, shares);
-  } else if (command === "transfer") {
-    const [propertyId, , toAddress, shares] = args;
-    tx = await contract.transferShares(propertyId, toAddress, shares);
+    tx = await contract.createProperty(propertyId, totalShares);
+  } else if (command === "invest" || command === "buyShares") {
+    const [propertyId, investor, shares] = args;
+    tx = await contract.buyShares(propertyId, investor, shares);
+  } else if (command === "transfer" || command === "transferShares") {
+    const [propertyId, fromAddress, toAddress, shares] = args;
+    tx = await contract.transferShares(propertyId, fromAddress, toAddress, shares);
+  } else if (command === "payout") {
+    const [propertyId, investor, amount] = args;
+    tx = await contract.payout(propertyId, investor, amount);
   } else {
     throw new Error("Unsupported command");
   }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { aiApi, investmentApi } from '../api/endpoints';
 import RiskBadge from './RiskBadge';
+import { useAuth } from '../context/AuthContext';
 
 const INR = (val) => '₹' + Number(val).toLocaleString('en-IN');
 const TYPE_COLOR = {
@@ -12,6 +13,7 @@ const TYPE_COLOR = {
 };
 
 function PropertyCard({ property, canInvest }) {
+  const { user } = useAuth();
   const [shares, setShares] = useState(1);
   const [roi, setRoi] = useState(null);
   const [risk, setRisk] = useState(null);
@@ -47,7 +49,7 @@ function PropertyCard({ property, canInvest }) {
     setInvesting(true);
     setMessage('');
     try {
-      const wallet = localStorage.getItem('wallet_address') || '0x2222222222222222222222222222222222222222';
+      const wallet = user?.wallet_address || '0x2222222222222222222222222222222222222222';
       await investmentApi.buyShares({ property_id: property.id, shares: Number(shares), wallet_address: wallet });
       setMessage(`✓ ${shares} share(s) purchased successfully!`);
     } catch (e) {
@@ -73,7 +75,7 @@ function PropertyCard({ property, canInvest }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between">
           <span className="rounded-full bg-white/90 px-2 py-0.5 text-xs font-semibold text-slate-800">
-            {property.city}, {property.state}
+            {property.city}, Hyderabad
           </span>
           <RiskBadge risk={property.risk_level} />
         </div>

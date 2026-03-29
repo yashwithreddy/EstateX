@@ -4,10 +4,14 @@ export const authApi = {
   login: (payload) => api.post('/auth/login', payload),
   register: (payload) => api.post('/auth/register', payload),
   me: () => api.get('/auth/me'),
+  updateWallet: (payload) => api.put('/auth/wallet', payload),
 };
 
 export const propertyApi = {
-  list: (params = {}) => api.get('/properties', { params }),
+  list: (params = {}) => {
+    const clean = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v !== null && v !== undefined));
+    return api.get('/properties', { params: clean });
+  },
   detail: (id) => api.get(`/properties/${id}`),
   create: (formData) => api.post('/properties', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   myListings: () => api.get('/properties/me/listings'),

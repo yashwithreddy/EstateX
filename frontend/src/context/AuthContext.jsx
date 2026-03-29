@@ -28,6 +28,13 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const updateWallet = async (payload) => {
+    const { data } = await authApi.updateWallet(payload);
+    localStorage.setItem('estatex_user', JSON.stringify(data));
+    setUser(data);
+    return data;
+  };
+
   const logout = () => {
     localStorage.removeItem('estatex_token');
     localStorage.removeItem('estatex_user');
@@ -35,7 +42,10 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const value = useMemo(() => ({ token, user, isAuthenticated: Boolean(token), login, register, logout }), [token, user]);
+  const value = useMemo(
+    () => ({ token, user, isAuthenticated: Boolean(token), login, register, logout, updateWallet }),
+    [token, user]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

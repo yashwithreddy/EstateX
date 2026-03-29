@@ -20,7 +20,7 @@ const FEATURE_ICONS = {
 
 function PropertyDetailsPage() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, updateWallet } = useAuth();
   const [property, setProperty] = useState(null);
   const [explain, setExplain] = useState(null);
   const [shares, setShares] = useState(1);
@@ -42,7 +42,9 @@ function PropertyDetailsPage() {
 
   const { chartData, totalContrib, featureList } = useMemo(() => {
     if (!explain) return { chartData: null, totalContrib: 0, featureList: [] };
-    const entries = Object.entries(explain.feature_contributions);
+    const entries = Object.entries(explain.feature_contributions).filter(
+      ([k]) => k !== 'Rental Demand Index' && k !== 'Vacancy Rate'
+    );
     const absVals = entries.map(([, v]) => Math.abs(v));
     const total = absVals.reduce((a, b) => a + b, 0) || 1;
     const featureList = entries.map(([k, v]) => ({
@@ -69,11 +71,28 @@ function PropertyDetailsPage() {
     setInvesting(true);
     setMessage('');
     try {
-      const wallet = localStorage.getItem('wallet_address') || '0x2222222222222222222222222222222222222222';
-      await investmentApi.buyShares({ property_id: Number(id), shares: Number(shares), wallet_address: wallet });
-      setMessage(`✓ Successfully purchased ${shares} share(s) for ${INR(Number(shares) * Number(property.price_per_share))}`);
+      // Basic MetaMask integration (Optional fallback to default if no wallet)
+      let wallet = user?.wallet_address || '0x2222222222222222222222222222222222222222';
+      
+      if (window.ethereum) {
+        try {
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            if (accounts.length > 0) {
+              wallet = accounts[0];
+              if (wallet !== user?.wallet_address) {
+                await updateWallet({ wallet_address: wallet });
+              }
+            }
+        } catch (walletErr) {
+            console.warn("Wallet not connected, using default.", walletErr);
+        }
+      }
+
+      const res = await investmentApi.buyShares({ property_id: Number(id), shares: Number(shares), wallet_address: wallet });
+      const txHash = res.data?.onchain_tx_hash || 'Pending/Mock';
+      setMessage(`✓ Successfully purchased ${shares} share(s) for ${INR(Number(shares) * Number(property.price_per_share))}. Tx Hash: ${txHash}`);
     } catch (e) {
-      setMessage(`✗ ${e.message}`);
+      setMessage(`✗ ${e.message || 'Investment failed'}`);
     } finally {
       setInvesting(false);
     }

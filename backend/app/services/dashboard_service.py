@@ -1,7 +1,7 @@
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.models import InvestmentTransaction, ListingStatus, Ownership, Property, ShareListing, User
+from app.models import InvestmentTransaction, InvestorPayout, ListingStatus, Ownership, Property, ShareListing, User
 
 
 def investor_dashboard(db: Session, user_id: int) -> dict:
@@ -48,6 +48,14 @@ def investor_dashboard(db: Session, user_id: int) -> dict:
         .all()
     )
 
+    recent_payouts = (
+        db.query(InvestorPayout)
+        .filter(InvestorPayout.investor_id == user_id)
+        .order_by(InvestorPayout.created_at.desc())
+        .limit(12)
+        .all()
+    )
+
     tx_payload = [
         {
             "id": tx.id,
@@ -61,11 +69,56 @@ def investor_dashboard(db: Session, user_id: int) -> dict:
         for tx in transactions
     ]
 
+    hyderabad_properties = (
+        db.query(Property)
+        .filter(
+            or_(
+                Property.location.ilike("%hyderabad%"),
+                Property.city.ilike("%hyderabad%"),
+                Property.state.ilike("%telangana%"),
+            )
+        )
+        .order_by(Property.created_at.desc())
+        .all()
+    )
+
+    hyderabad_payload = [
+        {
+            "property_id": prop.id,
+            "title": prop.title,
+            "city": prop.city,
+            "state": prop.state,
+            "location": prop.location,
+            "property_type": prop.property_type.value,
+            "price_per_share": float(prop.price_per_share),
+            "available_shares": prop.available_shares,
+            "roi_percent": prop.ai_predicted_roi,
+            "risk_level": prop.risk_level.value,
+            "listing_status": prop.listing_status.value,
+            "is_verified": prop.is_verified,
+        }
+        for prop in hyderabad_properties
+    ]
+
     return {
         "total_investment_value": round(total_value, 2),
+        "wallet_balance": float((db.query(User.wallet_balance).filter(User.id == user_id).scalar()) or 0),
         "ownership_distribution": distribution,
         "portfolio": portfolio,
         "transaction_history": tx_payload,
+        "recent_payouts": [
+            {
+                "id": payout.id,
+                "property_id": payout.property_id,
+                "payout_month": payout.payout_month,
+                "amount": float(payout.amount),
+                "onchain_tx_hash": payout.onchain_tx_hash,
+                "created_at": payout.created_at.isoformat(),
+            }
+            for payout in recent_payouts
+        ],
+        "hyderabad_property_count": len(hyderabad_payload),
+        "hyderabad_properties": hyderabad_payload,
     }
 
 

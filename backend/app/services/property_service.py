@@ -110,7 +110,15 @@ def list_properties(
     q = db.query(Property).filter(Property.listing_status == ListingStatus.APPROVED, Property.is_verified.is_(True))
 
     if city:
-        q = q.filter(Property.city.ilike(f"%{city}%"))
+        city_lower = city.strip().lower()
+        if city_lower == "hyderabad":
+            q = q.filter(
+                (Property.city.ilike("%hyderabad%"))
+                | (Property.location.ilike("%hyderabad%"))
+                | (Property.state.ilike("%telangana%"))
+            )
+        else:
+            q = q.filter(Property.city.ilike(f"%{city}%"))
     if property_type:
         try:
             q = q.filter(Property.property_type == PropertyType(property_type))

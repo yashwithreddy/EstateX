@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -37,3 +38,27 @@ class ShareListingOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class PayoutRunRequest(BaseModel):
+    payout_month: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}$")
+
+
+class InvestorPayoutOut(BaseModel):
+    id: int
+    investor_id: int
+    property_id: int
+    payout_month: str
+    amount: float
+    onchain_tx_hash: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PayoutRunResponse(BaseModel):
+    payout_month: str
+    total_investors: int
+    total_amount: float
+    payouts: list[InvestorPayoutOut]

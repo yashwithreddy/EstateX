@@ -47,7 +47,7 @@ function LoginPage() {
         {/* Brand */}
         <div className="text-center">
           <h1 className="text-4xl font-extrabold tracking-tight text-white">EstateX</h1>
-          <p className="mt-1 text-sky-300 text-sm">Fractional Real Estate Investing · India</p>
+          <p className="mt-1 text-sky-300 text-sm">Hyderabad Real Estate · Fractional Investing</p>
         </div>
 
         {/* Demo credential cards */}

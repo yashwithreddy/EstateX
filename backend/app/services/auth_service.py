@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models import User, UserRole
-from app.schemas.auth import LoginRequest, TokenResponse, UserCreate
+from app.schemas.auth import LoginRequest, TokenResponse, UserCreate, WalletUpdateRequest
 
 
 def register_user(db: Session, payload: UserCreate) -> TokenResponse:
@@ -36,3 +36,11 @@ def login_user(db: Session, payload: LoginRequest) -> TokenResponse:
 
     token = create_access_token(subject=str(user.id), role=user.role.value)
     return TokenResponse(access_token=token, user=user)
+
+
+def update_wallet_address(db: Session, user: User, payload: WalletUpdateRequest) -> User:
+    user.wallet_address = payload.wallet_address
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user

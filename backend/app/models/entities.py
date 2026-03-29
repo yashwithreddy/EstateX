@@ -56,6 +56,7 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False)
     wallet_address: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    wallet_balance: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -154,5 +155,18 @@ class InvestmentTransaction(Base):
     shares: Mapped[int] = mapped_column(Integer, nullable=False)
     amount: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False)
     tx_type: Mapped[TransactionType] = mapped_column(Enum(TransactionType), nullable=False)
+    onchain_tx_hash: Mapped[Optional[str]] = mapped_column(String(66), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class InvestorPayout(Base):
+    __tablename__ = "investor_payouts"
+    __table_args__ = (UniqueConstraint("investor_id", "property_id", "payout_month", name="uq_investor_month"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    investor_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    property_id: Mapped[int] = mapped_column(ForeignKey("properties.id"), nullable=False)
+    payout_month: Mapped[str] = mapped_column(String(7), nullable=False)
+    amount: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False)
     onchain_tx_hash: Mapped[Optional[str]] = mapped_column(String(66), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

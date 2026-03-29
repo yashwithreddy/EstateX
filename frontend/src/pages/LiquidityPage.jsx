@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { investmentApi, dashboardApi } from '../api/endpoints';
+import { useAuth } from '../context/AuthContext';
 
 const INR = (val) => '₹' + Number(val).toLocaleString('en-IN');
 
 function LiquidityPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('simulate');
   const [listings, setListings] = useState([]);
   const [portfolio, setPortfolio] = useState([]);
@@ -64,7 +66,7 @@ function LiquidityPage() {
   const buyFromListing = async (listingId) => {
     setTradeMsg('');
     try {
-      const wallet = localStorage.getItem('wallet_address') || '0x2222222222222222222222222222222222222222';
+      const wallet = user?.wallet_address || '0x2222222222222222222222222222222222222222';
       await investmentApi.tradeShares({ listing_id: listingId, shares_to_buy: 1, buyer_wallet_address: wallet });
       setTradeMsg('✓ Share purchased from secondary market!');
       loadData();

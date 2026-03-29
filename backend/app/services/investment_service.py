@@ -1,8 +1,21 @@
+from datetime import datetime
+from typing import Optional
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.blockchain.service import blockchain_service
-from app.models import InvestmentTransaction, ListingStatus, Ownership, Property, ShareListing, TransactionType, User
+from app.models import (
+    InvestmentTransaction,
+    InvestorPayout,
+    ListingStatus,
+    Ownership,
+    Property,
+    ShareListing,
+    TransactionType,
+    User,
+    UserRole,
+)
 
 
 def _get_or_create_ownership(db: Session, property_id: int, investor_id: int) -> Ownership:
@@ -187,4 +200,72 @@ def simulate_partial_exit(db: Session, investor: User, property_id: int, shares_
         "absolute_gain": absolute_gain,
         "roi_percent": round(roi_rate * 100, 2),
         "rental_yield_percent": round(rental_yield_rate * 100, 2),
+    }
+
+
+def distribute_monthly_roi(db: Session, payout_month: Optional[str] = None) -> dict:
+    if not payout_month:
+        payout_month = datetime.utcnow().strftime("%Y-%m")
+
+    holdings = (
+        db.query(Ownership, Property, User)
+        .join(Property, Property.id == Ownership.property_id)
+        .join(User, User.id == Ownership.investor_id)
+        .filter(User.role == UserRole.INVESTOR)
+        .all()
+    )
+
+    payouts: list[InvestorPayout] = []
+    total_amount = 0.0
+    investors_paid = set()
+
+    for ownership, prop, investor in holdings:
+        if ownership.shares <= 0:
+            continue
+
+        existing = (
+            db.query(InvestorPayout)
+            .filter(
+                InvestorPayout.investor_id == investor.id,
+                InvestorPayout.property_id == prop.id,
+                InvestorPayout.payout_month == payout_month,
+            )
+            .first()
+        )
+        if existing:
+            continue
+
+        monthly_rate = (float(prop.ai_predicted_roi) / 100) / 12
+        amount = round(float(prop.price_per_share) * ownership.shares * monthly_rate, 2)
+        if amount <= 0:
+            continue
+
+        tx_hash = None
+        if blockchain_service.enabled and investor.wallet_address:
+            amount_wei = int(round(amount * 10**18))
+            tx_hash = blockchain_service.payout_roi(prop.id, investor.wallet_address, amount_wei)
+        else:
+            investor.wallet_balance = float(investor.wallet_balance or 0) + amount
+
+        payout = InvestorPayout(
+            investor_id=investor.id,
+            property_id=prop.id,
+            payout_month=payout_month,
+            amount=amount,
+            onchain_tx_hash=tx_hash or "wallet_credit",
+        )
+        db.add(payout)
+        payouts.append(payout)
+        total_amount += amount
+        investors_paid.add(investor.id)
+
+    db.commit()
+    for payout in payouts:
+        db.refresh(payout)
+
+    return {
+        "payout_month": payout_month,
+        "total_investors": len(investors_paid),
+        "total_amount": round(total_amount, 2),
+        "payouts": payouts,
     }

@@ -83,12 +83,21 @@ function PropertyOwnerPage() {
                 <label className="mb-1 block text-xs font-medium text-slate-600">Description</label>
                 <textarea className="w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-sky-400 focus:outline-none" rows={3} placeholder="Premium commercial asset with strong rental demand…" required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
-              {[['City', 'city', 'e.g. Hyderabad'], ['State', 'state', 'e.g. Telangana'], ['Full Address', 'location', 'e.g. HITEC City, Hyderabad']].map(([label, key, ph]) => (
-                <div key={key} className={key === 'location' ? 'md:col-span-2' : ''}>
+              {[['Full Address', 'location', 'e.g. Gachibowli, Hyderabad']].map(([label, key, ph]) => (
+                <div key={key} className="md:col-span-2">
                   <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
                   <input className="w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-sky-400 focus:outline-none" placeholder={ph} required value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
                 </div>
               ))}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Locality</label>
+                <select className="w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-sky-400 focus:outline-none" required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value, state: 'Telangana' })}>
+                  <option value="">Select Locality</option>
+                  {['Gachibowli','Hitech City','Kondapur','Madhapur','Manikonda','Narsingi','Tellapur','Kukatpally','Miyapur','Banjara Hills','Jubilee Hills','Financial District','Begumpet','Secunderabad','Uppal','LB Nagar','Attapur','Kompally','Shamshabad','Bachupally'].map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Property Type</label>
                 <select className="w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-sky-400 focus:outline-none" value={form.property_type} onChange={(e) => setForm({ ...form, property_type: e.target.value })}>
@@ -120,10 +129,6 @@ function PropertyOwnerPage() {
               {[
                 ['Total Valuation (₹)', 'property_price', '185000000'],
                 ['Total Shares', 'total_shares', '10000'],
-                ['Rental Yield (%)', 'rental_yield', '7.5'],
-                ['Demand Index (0-1)', 'demand_index', '0.7'],
-                ['Market Trend (0-1)', 'market_trend', '0.6'],
-                ['AI Predicted ROI (%)', 'ai_predicted_roi', '13'],
               ].map(([label, key, ph]) => (
                 <div key={key}>
                   <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>

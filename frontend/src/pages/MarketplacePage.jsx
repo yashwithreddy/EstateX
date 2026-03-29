@@ -3,7 +3,11 @@ import PropertyCard from '../components/PropertyCard';
 import { propertyApi } from '../api/endpoints';
 import { useAuth } from '../context/AuthContext';
 
-const CITIES = ['Hyderabad', 'Mumbai', 'Bangalore', 'Pune', 'Chennai', 'Delhi', 'Ahmedabad', 'Noida', 'Gurugram', 'Kolkata', 'Jaipur'];
+const LOCALITIES = [
+  'Gachibowli', 'Hitech City', 'Kondapur', 'Madhapur', 'Manikonda', 'Narsingi', 'Tellapur',
+  'Kukatpally', 'Miyapur', 'Banjara Hills', 'Jubilee Hills', 'Financial District',
+  'Begumpet', 'Secunderabad', 'Uppal', 'LB Nagar', 'Attapur', 'Kompally', 'Shamshabad', 'Bachupally',
+];
 
 function MarketplacePage() {
   const { user } = useAuth();
@@ -38,8 +42,8 @@ function MarketplacePage() {
       {/* Header */}
       <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900">Property Marketplace</h2>
-          <p className="text-sm text-slate-500">Fractional investment in verified Indian real estate</p>
+          <h2 className="text-2xl font-extrabold text-slate-900">Hyderabad Property Marketplace</h2>
+          <p className="text-sm text-slate-500">Fractional investment in verified Hyderabad real estate</p>
         </div>
         {!loading && (
           <span className="rounded-full bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-700">
@@ -70,9 +74,9 @@ function MarketplacePage() {
             value={filters.city}
             onChange={(e) => setFilter('city', e.target.value)}
           >
-            <option value="">All Cities</option>
-            {CITIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
+            <option value="">All Localities</option>
+            {LOCALITIES.map((l) => (
+              <option key={l} value={l}>{l}</option>
             ))}
           </select>
           <select

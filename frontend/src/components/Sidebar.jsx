@@ -38,7 +38,7 @@ function Sidebar() {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-600 text-white font-bold text-lg">₹</div>
           <div>
             <h1 className="text-xl font-extrabold tracking-tight text-sky-900">EstateX</h1>
-            <p className="text-xs text-slate-400">Fractional Real Estate</p>
+            <p className="text-xs text-slate-400">Hyderabad Real Estate</p>
           </div>
         </Link>
       </div>

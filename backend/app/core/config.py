@@ -35,6 +35,11 @@ settings = Settings()
 
 
 def cors_origins_list() -> list[str]:
-    defaults = {"http://localhost:5173", "http://127.0.0.1:5173"}
+    defaults = {
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    }
     configured = {origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()}
     return sorted(defaults.union(configured))

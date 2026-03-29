@@ -6,8 +6,22 @@ from sqlalchemy.orm import Session
 from app.deps import require_roles
 from app.db.session import get_db
 from app.models import ShareListing, User, UserRole
-from app.schemas.investment import BuySharesRequest, ExitSimulateRequest, ShareListingCreate, ShareListingOut, TradeSharesRequest
-from app.services.investment_service import buy_primary_shares, buy_secondary_shares, list_shares_for_sale, simulate_partial_exit
+from app.schemas.investment import (
+    BuySharesRequest,
+    ExitSimulateRequest,
+    PayoutRunRequest,
+    PayoutRunResponse,
+    ShareListingCreate,
+    ShareListingOut,
+    TradeSharesRequest,
+)
+from app.services.investment_service import (
+    buy_primary_shares,
+    buy_secondary_shares,
+    distribute_monthly_roi,
+    list_shares_for_sale,
+    simulate_partial_exit,
+)
 
 router = APIRouter(prefix="/api/v1/investments", tags=["investments"])
 logger = logging.getLogger(__name__)
@@ -65,6 +79,16 @@ def exit_simulation(
     """Simulate partial exit with ROI, rental income and LTCG tax breakdown (Indian compliance)."""
     logger.info("exit_simulate investor_id=%s property_id=%s shares=%s", investor.id, payload.property_id, payload.shares_to_exit)
     return simulate_partial_exit(db, investor, payload.property_id, payload.shares_to_exit)
+
+
+@router.post("/payouts/run", response_model=PayoutRunResponse)
+def run_monthly_payouts(
+    payload: PayoutRunRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    logger.info("run_monthly_payouts admin_id=%s payout_month=%s", admin.id, payload.payout_month)
+    return distribute_monthly_roi(db, payload.payout_month)
 
 
 @router.post("/buy")

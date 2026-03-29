@@ -2,6 +2,7 @@ from app.models.entities import (
     Document,
     DocumentType,
     InvestmentTransaction,
+    InvestorPayout,
     ListingStatus,
     Ownership,
     Property,
@@ -24,6 +25,7 @@ __all__ = [
     "DocumentType",
     "Ownership",
     "InvestmentTransaction",
+    "InvestorPayout",
     "TransactionType",
     "ShareListing",
 ]

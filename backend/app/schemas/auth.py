@@ -24,6 +24,7 @@ class UserOut(BaseModel):
     full_name: str
     role: UserRole
     wallet_address: Optional[str]
+    wallet_balance: float
 
     class Config:
         from_attributes = True
@@ -33,3 +34,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class WalletUpdateRequest(BaseModel):
+    wallet_address: Optional[str] = Field(default=None, pattern=r"^0x[a-fA-F0-9]{40}$")

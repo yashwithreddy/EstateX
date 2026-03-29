@@ -32,13 +32,16 @@ class BlockchainService:
             return "mock_tx_blockchain_unavailable"
 
     def register_property(self, property_id: int, total_shares: int) -> str:
-        return self._run(["registerProperty", str(property_id), str(total_shares)])
+        return self._run(["createProperty", str(property_id), str(total_shares)])
 
     def buy_primary(self, property_id: int, wallet_address: str, shares: int) -> str:
-        return self._run(["invest", str(property_id), wallet_address, str(shares)])
+        return self._run(["buyShares", str(property_id), wallet_address, str(shares)])
 
     def transfer_secondary(self, property_id: int, from_wallet: str, to_wallet: str, shares: int) -> str:
-        return self._run(["transfer", str(property_id), from_wallet, to_wallet, str(shares)])
+        return self._run(["transferShares", str(property_id), from_wallet, to_wallet, str(shares)])
+
+    def payout_roi(self, property_id: int, investor_wallet: str, amount_wei: int) -> str:
+        return self._run(["payout", str(property_id), investor_wallet, str(amount_wei)])
 
 
 blockchain_service = BlockchainService()
