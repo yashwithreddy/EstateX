@@ -1,43 +1,47 @@
 import io
 import os
-from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 # Must be set before importing app modules
-SMOKE_DB_PATH = Path("/tmp/estatex_smoke.db")
-if SMOKE_DB_PATH.exists():
-    SMOKE_DB_PATH.unlink()
-
-os.environ.setdefault("DATABASE_URL", f"sqlite:///{SMOKE_DB_PATH}")
+os.environ.setdefault("BACKEND_URL", "mongodb://localhost:27017")
+os.environ.setdefault("MONGO_DB", "estatex_smoke")
 os.environ.setdefault("JWT_SECRET_KEY", "smoke-secret")
 os.environ.setdefault("BLOCKCHAIN_ENABLED", "false")
 os.environ.setdefault("UPLOADS_DIR", "uploads")
 
 from app.core.security import hash_password  # noqa: E402
-from app.db.session import SessionLocal  # noqa: E402
+from app.db.mongo import get_next_sequence, utc_now  # noqa: E402
+from app.db.session import get_database  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import User, UserRole  # noqa: E402
+from app.models import UserRole  # noqa: E402
 
 
 def ensure_admin_user() -> None:
-    db = SessionLocal()
-    try:
-        admin = db.query(User).filter(User.email == "admin@estatex.com").first()
-        if admin:
-            return
-        db.add(
-            User(
-                email="admin@estatex.com",
-                full_name="Admin User",
-                hashed_password=hash_password("Admin@123"),
-                role=UserRole.ADMIN,
-                wallet_address="0x000000000000000000000000000000000000dEaD",
-            )
-        )
-        db.commit()
-    finally:
-        db.close()
+    db = get_database()
+    db.users.delete_many({})
+    db.properties.delete_many({})
+    db.documents.delete_many({})
+    db.ownerships.delete_many({})
+    db.share_listings.delete_many({})
+    db.investment_transactions.delete_many({})
+    db.investor_payouts.delete_many({})
+    db.counters.delete_many({})
+
+    admin_id = get_next_sequence(db, "users")
+    db.users.insert_one(
+        {
+            "_id": admin_id,
+            "email": "admin@estatex.com",
+            "full_name": "Admin User",
+            "hashed_password": hash_password("Admin@123"),
+            "role": UserRole.ADMIN.value,
+            "wallet_address": "0x000000000000000000000000000000000000dEaD",
+            "wallet_balance": 0.0,
+            "is_active": True,
+            "created_at": utc_now(),
+        }
+    )
 
 
 def auth_header(token: str) -> dict:
@@ -68,7 +72,7 @@ def run_smoke() -> None:
             "email": "owner.smoke@estatex.com",
             "full_name": "Owner Smoke",
             "password": "Owner@123",
-            "role": "owner",
+            "role": "property_owner",
             "wallet_address": "0x1111111111111111111111111111111111111111",
         },
     )
@@ -110,18 +114,29 @@ def run_smoke() -> None:
 
     # Owner uploads property with mandatory PDFs
     files = {
-        "title_document": ("title.pdf", io.BytesIO(make_pdf_bytes("title")), "application/pdf"),
-        "ownership_document": ("ownership.pdf", io.BytesIO(make_pdf_bytes("ownership")), "application/pdf"),
+        "sale_deed": ("sale.pdf", io.BytesIO(make_pdf_bytes("sale")), "application/pdf"),
+        "encumbrance_certificate": (
+            "encumbrance.pdf",
+            io.BytesIO(make_pdf_bytes("encumbrance")),
+            "application/pdf",
+        ),
+        "property_tax_receipt": ("tax.pdf", io.BytesIO(make_pdf_bytes("tax")), "application/pdf"),
+        "identity_proof": ("identity.pdf", io.BytesIO(make_pdf_bytes("identity")), "application/pdf"),
     }
     data = {
         "title": "Smoke Test Property",
         "description": "Prime asset for smoke testing end-to-end business workflows.",
         "location": "Dallas, TX",
+        "city": "Dallas",
+        "state": "TX",
+        "property_type": "residential",
         "property_price": "500000",
         "total_shares": "5000",
         "rental_yield": "7.1",
         "demand_index": "0.74",
         "market_trend": "0.69",
+        "ai_predicted_roi": "12.5",
+        "risk_level": "Low",
     }
     created = client.post("/api/v1/properties", headers=auth_header(owner_token), data=data, files=files)
     assert created.status_code == 200, created.text
@@ -140,7 +155,7 @@ def run_smoke() -> None:
     pending = client.get("/api/v1/admin/documents/pending", headers=auth_header(admin_token))
     assert pending.status_code == 200, pending.text
     pending_docs = [d for d in pending.json() if d["property_id"] == property_id]
-    assert len(pending_docs) == 2, pending.json()
+    assert len(pending_docs) == 4, pending.json()
 
     for doc in pending_docs:
         verified = client.patch(

@@ -2,11 +2,12 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from sqlalchemy.orm import Session
+from pymongo.database import Database
 
 from app.deps import get_current_user, require_roles
+from app.db.mongo import serialize_docs
 from app.db.session import get_db
-from app.models import Property, PropertyType, User, UserRole
+from app.models import PropertyType, UserRole
 from app.schemas.property import PropertyCreate, PropertyOut
 from app.services.property_service import create_property_with_documents, get_property_or_404, list_properties
 
@@ -22,14 +23,14 @@ def get_public_properties(
     min_roi: Optional[float] = None,
     max_roi: Optional[float] = None,
     search: Optional[str] = None,
-    db: Session = Depends(get_db),
+    db: Database = Depends(get_db),
 ):
     logger.info("get_public_properties city=%s type=%s risk=%s", city, property_type, risk_level)
     return list_properties(db, city, property_type.value if property_type else None, risk_level, min_roi, max_roi, search)
 
 
 @router.get("/{property_id}", response_model=PropertyOut)
-def get_property_detail(property_id: int, db: Session = Depends(get_db)):
+def get_property_detail(property_id: int, db: Database = Depends(get_db)):
     logger.info("get_property_detail property_id=%s", property_id)
     return get_property_or_404(db, property_id)
 
@@ -54,10 +55,10 @@ def create_property(
     encumbrance_certificate: Optional[UploadFile] = File(None),
     property_tax_receipt: Optional[UploadFile] = File(None),
     identity_proof: Optional[UploadFile] = File(None),
-    db: Session = Depends(get_db),
-    owner: User = Depends(require_roles(UserRole.PROPERTY_OWNER)),
+    db: Database = Depends(get_db),
+    owner: dict = Depends(require_roles(UserRole.PROPERTY_OWNER)),
 ):
-    logger.info("create_property owner_id=%s", owner.id)
+    logger.info("create_property owner_id=%s", owner["id"])
     if not all([sale_deed, encumbrance_certificate, property_tax_receipt, identity_proof]):
         raise HTTPException(
             status_code=400,
@@ -92,6 +93,7 @@ def create_property(
 
 
 @router.get("/me/listings", response_model=list[PropertyOut])
-def my_listings(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    logger.info("my_listings user_id=%s", user.id)
-    return db.query(Property).filter(Property.owner_id == user.id).order_by(Property.created_at.desc()).all()
+def my_listings(db: Database = Depends(get_db), user: dict = Depends(get_current_user)):
+    logger.info("my_listings user_id=%s", user["id"])
+    props = list(db.properties.find({"owner_id": user["id"]}).sort("created_at", -1))
+    return serialize_docs(props)

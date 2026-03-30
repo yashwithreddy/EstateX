@@ -1,11 +1,9 @@
 from pathlib import Path
 
 from app.core.security import hash_password
-from app.db.session import SessionLocal
-from app.models import (
-    Document, DocumentType, InvestmentTransaction, ListingStatus, Ownership,
-    Property, PropertyType, RiskLevel, ShareListing, TransactionType, User, UserRole,
-)
+from app.db.mongo import get_next_sequence, utc_now
+from app.db.session import get_database
+from app.models import DocumentType, ListingStatus, PropertyType, RiskLevel, TransactionType, UserRole
 from app.utils.hash_utils import sha256_file
 
 # ---------------------------------------------------------------------------
@@ -261,42 +259,57 @@ def write_sample_pdf(path: Path, title: str) -> None:
 
 
 def main() -> None:
-    db = SessionLocal()
+    db = get_database()
     uploads = Path("uploads")
     uploads.mkdir(exist_ok=True)
 
-    # Delete in FK-safe order
-    db.query(InvestmentTransaction).delete()
-    db.query(ShareListing).delete()
-    db.query(Ownership).delete()
-    db.query(Document).delete()
-    db.query(Property).delete()
-    db.query(User).delete()
-    db.commit()
+    # Delete in FK-safe order and reset sequences
+    db.investment_transactions.delete_many({})
+    db.share_listings.delete_many({})
+    db.ownerships.delete_many({})
+    db.documents.delete_many({})
+    db.properties.delete_many({})
+    db.users.delete_many({})
+    db.counters.delete_many({})
 
-    admin = User(
-        email="admin@estatex.in",
-        full_name="EstateX Hyderabad Admin",
-        hashed_password=hash_password("Admin@123"),
-        role=UserRole.ADMIN,
-        wallet_address="0x000000000000000000000000000000000000dEaD",
-    )
-    owner = User(
-        email="owner@estatex.in",
-        full_name="Priya Property Owner",
-        hashed_password=hash_password("Owner@123"),
-        role=UserRole.PROPERTY_OWNER,
-        wallet_address="0x1111111111111111111111111111111111111111",
-    )
-    investor = User(
-        email="investor@estatex.in",
-        full_name="Arjun Investor",
-        hashed_password=hash_password("Investor@123"),
-        role=UserRole.INVESTOR,
-        wallet_address="0x2222222222222222222222222222222222222222",
-    )
-    db.add_all([admin, owner, investor])
-    db.flush()
+    admin_id = get_next_sequence(db, "users")
+    owner_id = get_next_sequence(db, "users")
+    investor_id = get_next_sequence(db, "users")
+
+    admin = {
+        "_id": admin_id,
+        "email": "admin@estatex.in",
+        "full_name": "EstateX Hyderabad Admin",
+        "hashed_password": hash_password("Admin@123"),
+        "role": UserRole.ADMIN.value,
+        "wallet_address": "0x000000000000000000000000000000000000dEaD",
+        "wallet_balance": 0.0,
+        "is_active": True,
+        "created_at": utc_now(),
+    }
+    owner = {
+        "_id": owner_id,
+        "email": "owner@estatex.in",
+        "full_name": "Priya Property Owner",
+        "hashed_password": hash_password("Owner@123"),
+        "role": UserRole.PROPERTY_OWNER.value,
+        "wallet_address": "0x1111111111111111111111111111111111111111",
+        "wallet_balance": 0.0,
+        "is_active": True,
+        "created_at": utc_now(),
+    }
+    investor = {
+        "_id": investor_id,
+        "email": "investor@estatex.in",
+        "full_name": "Arjun Investor",
+        "hashed_password": hash_password("Investor@123"),
+        "role": UserRole.INVESTOR.value,
+        "wallet_address": "0x2222222222222222222222222222222222222222",
+        "wallet_balance": 0.0,
+        "is_active": True,
+        "created_at": utc_now(),
+    }
+    db.users.insert_many([admin, owner, investor])
 
     type_desc = {
         PropertyType.RESIDENTIAL: "Premium residential asset in {loc}, Hyderabad with high rental demand and strong appreciation potential.",
@@ -305,7 +318,7 @@ def main() -> None:
         PropertyType.RETAIL:      "High-footfall retail asset in {loc}, Hyderabad with long-term anchor tenant leases.",
     }
 
-    approved_props: list[Property] = []
+    approved_props: list[dict] = []
 
     for idx, row in enumerate(HYDERABAD_PROPERTIES):
         (title, locality, ptype, price_lakh, area_sqft, beds,
@@ -317,53 +330,62 @@ def main() -> None:
         demand_index  = round((loc_score + conn_score) / 20.0, 3)
         market_trend  = _AT_MAP.get(at_code, 0.55)
 
-        prop = Property(
-            owner_id=owner.id,
-            title=title,
-            description=type_desc[ptype].format(loc=locality),
-            city=locality,
-            state="Telangana",
-            location=f"{locality}, Hyderabad, Telangana",
-            property_type=ptype,
-            image_url=_img(img_pool, img_idx),
-            property_price=price_inr,
-            total_shares=total_shares,
-            available_shares=int(total_shares * 0.88),
-            price_per_share=1_000.0,
-            rental_yield=rental_yield,
-            demand_index=demand_index,
-            market_trend=market_trend,
-            ai_predicted_roi=roi,
-            risk_level=risk,
-            listing_status=ListingStatus.APPROVED if idx < 148 else ListingStatus.PENDING,
-            is_verified=idx < 148,
-        )
-        db.add(prop)
-        db.flush()
+        property_id = get_next_sequence(db, "properties")
+        prop = {
+            "_id": property_id,
+            "owner_id": owner_id,
+            "title": title,
+            "description": type_desc[ptype].format(loc=locality),
+            "city": locality,
+            "state": "Telangana",
+            "location": f"{locality}, Hyderabad, Telangana",
+            "property_type": ptype.value,
+            "image_url": _img(img_pool, img_idx),
+            "property_price": price_inr,
+            "total_shares": total_shares,
+            "available_shares": int(total_shares * 0.88),
+            "price_per_share": 1_000.0,
+            "rental_yield": rental_yield,
+            "demand_index": demand_index,
+            "market_trend": market_trend,
+            "ai_predicted_roi": roi,
+            "risk_level": risk.value,
+            "listing_status": ListingStatus.APPROVED.value if idx < 148 else ListingStatus.PENDING.value,
+            "is_verified": idx < 148,
+            "rejection_reason": None,
+            "contract_property_id": None,
+            "created_at": utc_now(),
+        }
+        db.properties.insert_one(prop)
 
         if len(approved_props) < 15 and idx < 148:
             approved_props.append(prop)
 
+        document_docs = []
         for doc_type in [
             DocumentType.SALE_DEED,
             DocumentType.ENCUMBRANCE_CERTIFICATE,
             DocumentType.PROPERTY_TAX_RECEIPT,
             DocumentType.IDENTITY_PROOF,
         ]:
-            file_path = uploads / f"seed_{prop.id}_{doc_type.value}.pdf"
-            write_sample_pdf(file_path, f"{prop.title} {doc_type.value}")
-            db.add(
-                Document(
-                    property_id=prop.id,
-                    document_type=doc_type,
-                    file_name=file_path.name,
-                    file_path=str(file_path),
-                    sha256_hash=sha256_file(file_path),
-                    mime_type="application/pdf",
-                    is_verified=idx < 148,
-                    verified_by_admin_id=admin.id if idx < 148 else None,
-                )
+            file_path = uploads / f"seed_{property_id}_{doc_type.value}.pdf"
+            write_sample_pdf(file_path, f"{title} {doc_type.value}")
+            document_docs.append(
+                {
+                    "_id": get_next_sequence(db, "documents"),
+                    "property_id": property_id,
+                    "document_type": doc_type.value,
+                    "file_name": file_path.name,
+                    "file_path": str(file_path),
+                    "sha256_hash": sha256_file(file_path),
+                    "mime_type": "application/pdf",
+                    "is_verified": idx < 148,
+                    "verified_by_admin_id": admin_id if idx < 148 else None,
+                    "created_at": utc_now(),
+                }
             )
+        if document_docs:
+            db.documents.insert_many(document_docs)
 
     # ── Demo investment transactions (investor portfolio) ─────────────────────
     _demo_buys = [
@@ -374,40 +396,53 @@ def main() -> None:
         (approved_props[14],  15),   # 15 shares in property 15
     ]
     for prop, n_shares in _demo_buys:
-        prop.available_shares = max(0, prop.available_shares - n_shares)
-        db.add(Ownership(
-            property_id=prop.id,
-            investor_id=investor.id,
-            shares=n_shares,
-        ))
-        db.add(InvestmentTransaction(
-            property_id=prop.id,
-            buyer_id=investor.id,
-            seller_id=owner.id,
-            shares=n_shares,
-            amount=float(prop.price_per_share) * n_shares,
-            tx_type=TransactionType.PRIMARY_BUY,
-            onchain_tx_hash=f"0x{'0' * 40}{prop.id:06x}",
-        ))
+        db.properties.update_one({"_id": prop["_id"]}, {"$inc": {"available_shares": -n_shares}})
+        db.ownerships.insert_one(
+            {
+                "_id": get_next_sequence(db, "ownerships"),
+                "property_id": prop["_id"],
+                "investor_id": investor_id,
+                "shares": n_shares,
+                "updated_at": utc_now(),
+            }
+        )
+        db.investment_transactions.insert_one(
+            {
+                "_id": get_next_sequence(db, "investment_transactions"),
+                "property_id": prop["_id"],
+                "buyer_id": investor_id,
+                "seller_id": owner_id,
+                "shares": n_shares,
+                "amount": float(prop["price_per_share"]) * n_shares,
+                "tx_type": TransactionType.PRIMARY_BUY.value,
+                "onchain_tx_hash": f"0x{'0' * 40}{prop['_id']:06x}",
+                "created_at": utc_now(),
+            }
+        )
 
     # ── Secondary market listings (liquidity demo) ────────────────────────────
-    db.add(ShareListing(
-        property_id=approved_props[0].id,
-        seller_id=investor.id,
-        shares_for_sale=10,
-        price_per_share=1_100.0,
-        is_active=True,
-    ))
-    db.add(ShareListing(
-        property_id=approved_props[3].id,
-        seller_id=investor.id,
-        shares_for_sale=20,
-        price_per_share=1_050.0,
-        is_active=True,
-    ))
-
-    db.commit()
-    db.close()
+    db.share_listings.insert_many(
+        [
+            {
+                "_id": get_next_sequence(db, "share_listings"),
+                "property_id": approved_props[0]["_id"],
+                "seller_id": investor_id,
+                "shares_for_sale": 10,
+                "price_per_share": 1_100.0,
+                "is_active": True,
+                "created_at": utc_now(),
+            },
+            {
+                "_id": get_next_sequence(db, "share_listings"),
+                "property_id": approved_props[3]["_id"],
+                "seller_id": investor_id,
+                "shares_for_sale": 20,
+                "price_per_share": 1_050.0,
+                "is_active": True,
+                "created_at": utc_now(),
+            },
+        ]
+    )
     print(
         f"✓ Seeded {len(HYDERABAD_PROPERTIES)} Hyderabad properties, "
         f"{len(_demo_buys)} investor holdings, 2 secondary listings across 20 localities."

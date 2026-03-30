@@ -10,9 +10,13 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
-    database_url: str = Field(
-        default="postgresql+psycopg2://postgres:postgres@localhost:5432/estatex",
-        validation_alias=AliasChoices("DATABASE_URL", "database_url"),
+    mongo_url: str = Field(
+        default="mongodb://localhost:27017",
+        validation_alias=AliasChoices("BACKEND_URL", "MONGODB_URL", "MONGO_URL", "DATABASE_URL"),
+    )
+    mongo_db: str = Field(
+        default="estatex",
+        validation_alias=AliasChoices("MONGO_DB", "MONGODB_DB", "DATABASE_NAME"),
     )
 
     jwt_secret_key: str = Field(

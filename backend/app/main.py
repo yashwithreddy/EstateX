@@ -5,14 +5,13 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import cors_origins_list, settings
-from app.db.session import Base, engine
+from app.db.mongo import ensure_indexes
+from app.db.session import get_database
 from app.ml.service import ml_service
 from app.routers import admin, ai, auth, dashboard, investments, predict, properties
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("estatex.api")
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.app_name, version="1.0.0")
 
@@ -55,6 +54,8 @@ def health_check():
 
 @app.on_event("startup")
 def startup_checks() -> None:
-    Base.metadata.create_all(bind=engine)
+    db = get_database()
+    db.command("ping")
+    ensure_indexes(db)
     model_status = ml_service.preload()
     logger.info("startup complete model_status=%s cors=%s", model_status, cors_origins_list())

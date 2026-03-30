@@ -1,7 +1,9 @@
-from app.db.session import Base, engine
-from app.models import entities  # noqa: F401
+from app.db.mongo import ensure_indexes
+from app.db.session import get_database
 
 
 if __name__ == "__main__":
-    Base.metadata.create_all(bind=engine)
-    print("Database tables created.")
+    db = get_database()
+    db.command("ping")
+    ensure_indexes(db)
+    print("MongoDB indexes ensured.")

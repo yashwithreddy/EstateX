@@ -2,163 +2,180 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from pymongo import ReturnDocument
+from pymongo.database import Database
 
 from app.blockchain.service import blockchain_service
-from app.models import (
-    InvestmentTransaction,
-    InvestorPayout,
-    ListingStatus,
-    Ownership,
-    Property,
-    ShareListing,
-    TransactionType,
-    User,
-    UserRole,
-)
+from app.db.mongo import get_next_sequence, serialize_doc, serialize_docs, utc_now
+from app.models import ListingStatus, TransactionType, UserRole
 
 
-def _get_or_create_ownership(db: Session, property_id: int, investor_id: int) -> Ownership:
-    ownership = (
-        db.query(Ownership)
-        .filter(Ownership.property_id == property_id, Ownership.investor_id == investor_id)
-        .first()
-    )
+def _get_or_create_ownership(db: Database, property_id: int, investor_id: int) -> dict:
+    ownership = db.ownerships.find_one({"property_id": property_id, "investor_id": investor_id})
     if ownership:
-        return ownership
+        return serialize_doc(ownership)
 
-    ownership = Ownership(property_id=property_id, investor_id=investor_id, shares=0)
-    db.add(ownership)
-    db.flush()
-    return ownership
+    ownership_id = get_next_sequence(db, "ownerships")
+    ownership_doc = {
+        "_id": ownership_id,
+        "property_id": property_id,
+        "investor_id": investor_id,
+        "shares": 0,
+        "updated_at": utc_now(),
+    }
+    db.ownerships.insert_one(ownership_doc)
+    return serialize_doc(ownership_doc)
 
 
-def buy_primary_shares(db: Session, investor: User, property_id: int, shares: int, wallet_address: str) -> InvestmentTransaction:
-    property_item = db.query(Property).filter(Property.id == property_id).first()
+def buy_primary_shares(db: Database, investor: dict, property_id: int, shares: int, wallet_address: str) -> dict:
+    property_item = db.properties.find_one({"_id": property_id})
     if not property_item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found")
-
-    if property_item.listing_status != ListingStatus.APPROVED or not property_item.is_verified:
+    if property_item.get("listing_status") != ListingStatus.APPROVED.value or not property_item.get("is_verified"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Property is not approved for investment")
-
-    if shares > property_item.available_shares:
+    if shares > property_item.get("available_shares", 0):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Not enough shares available")
 
-    tx_hash = blockchain_service.buy_primary(property_item.id, wallet_address, shares)
-
-    property_item.available_shares -= shares
-    ownership = _get_or_create_ownership(db, property_item.id, investor.id)
-    ownership.shares += shares
-
-    tx = InvestmentTransaction(
-        property_id=property_item.id,
-        buyer_id=investor.id,
-        seller_id=property_item.owner_id,
-        shares=shares,
-        amount=float(property_item.price_per_share) * shares,
-        tx_type=TransactionType.PRIMARY_BUY,
-        onchain_tx_hash=tx_hash,
+    property_item = db.properties.find_one_and_update(
+        {"_id": property_id, "available_shares": {"$gte": shares}},
+        {"$inc": {"available_shares": -shares}},
+        return_document=ReturnDocument.AFTER,
     )
-    db.add(tx)
-    db.commit()
-    db.refresh(tx)
-    return tx
+    if not property_item:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Share availability changed. Retry.")
 
+    tx_hash = blockchain_service.buy_primary(property_id, wallet_address, shares)
 
-def list_shares_for_sale(db: Session, seller: User, property_id: int, shares_for_sale: int, price_per_share: float) -> ShareListing:
-    ownership = (
-        db.query(Ownership)
-        .filter(Ownership.property_id == property_id, Ownership.investor_id == seller.id)
-        .first()
+    ownership = _get_or_create_ownership(db, property_id, investor["id"])
+    db.ownerships.update_one(
+        {"_id": ownership["id"]},
+        {"$inc": {"shares": shares}, "$set": {"updated_at": utc_now()}},
     )
-    if not ownership or ownership.shares < shares_for_sale:
+
+    tx_id = get_next_sequence(db, "investment_transactions")
+    amount = float(property_item["price_per_share"]) * shares
+    tx = {
+        "_id": tx_id,
+        "property_id": property_id,
+        "buyer_id": investor["id"],
+        "seller_id": property_item["owner_id"],
+        "shares": shares,
+        "amount": amount,
+        "tx_type": TransactionType.PRIMARY_BUY.value,
+        "onchain_tx_hash": tx_hash,
+        "created_at": utc_now(),
+    }
+    db.investment_transactions.insert_one(tx)
+    return serialize_doc(tx)
+
+
+def list_shares_for_sale(
+    db: Database,
+    seller: dict,
+    property_id: int,
+    shares_for_sale: int,
+    price_per_share: float,
+) -> dict:
+    ownership = db.ownerships.find_one({"property_id": property_id, "investor_id": seller["id"]})
+    if not ownership or ownership.get("shares", 0) < shares_for_sale:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient shares to list")
 
-    listing = ShareListing(
-        property_id=property_id,
-        seller_id=seller.id,
-        shares_for_sale=shares_for_sale,
-        price_per_share=price_per_share,
-        is_active=True,
-    )
-    db.add(listing)
-    db.commit()
-    db.refresh(listing)
-    return listing
+    listing_id = get_next_sequence(db, "share_listings")
+    listing = {
+        "_id": listing_id,
+        "property_id": property_id,
+        "seller_id": seller["id"],
+        "shares_for_sale": shares_for_sale,
+        "price_per_share": price_per_share,
+        "is_active": True,
+        "created_at": utc_now(),
+    }
+    db.share_listings.insert_one(listing)
+    return serialize_doc(listing)
 
 
 def buy_secondary_shares(
-    db: Session,
-    buyer: User,
+    db: Database,
+    buyer: dict,
     listing_id: int,
     shares_to_buy: int,
     buyer_wallet_address: str,
-) -> InvestmentTransaction:
-    listing = db.query(ShareListing).filter(ShareListing.id == listing_id, ShareListing.is_active.is_(True)).first()
+) -> dict:
+    listing = db.share_listings.find_one({"_id": listing_id, "is_active": True})
     if not listing:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
-    if shares_to_buy > listing.shares_for_sale:
+    if shares_to_buy > listing.get("shares_for_sale", 0):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Requested shares exceed listing availability")
 
-    seller_ownership = (
-        db.query(Ownership)
-        .filter(Ownership.property_id == listing.property_id, Ownership.investor_id == listing.seller_id)
-        .first()
+    seller_ownership = db.ownerships.find_one(
+        {"property_id": listing["property_id"], "investor_id": listing["seller_id"]}
     )
-    if not seller_ownership or seller_ownership.shares < shares_to_buy:
+    if not seller_ownership or seller_ownership.get("shares", 0) < shares_to_buy:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Seller does not hold enough shares")
 
-    seller = db.query(User).filter(User.id == listing.seller_id).first()
-    from_wallet = seller.wallet_address if seller else ""
-    tx_hash = blockchain_service.transfer_secondary(listing.property_id, from_wallet, buyer_wallet_address, shares_to_buy)
+    seller = db.users.find_one({"_id": listing["seller_id"]})
+    from_wallet = seller.get("wallet_address") if seller else ""
+    tx_hash = blockchain_service.transfer_secondary(listing["property_id"], from_wallet, buyer_wallet_address, shares_to_buy)
 
-    seller_ownership.shares -= shares_to_buy
-    buyer_ownership = _get_or_create_ownership(db, listing.property_id, buyer.id)
-    buyer_ownership.shares += shares_to_buy
-
-    listing.shares_for_sale -= shares_to_buy
-    if listing.shares_for_sale == 0:
-        listing.is_active = False
-
-    tx = InvestmentTransaction(
-        property_id=listing.property_id,
-        buyer_id=buyer.id,
-        seller_id=listing.seller_id,
-        shares=shares_to_buy,
-        amount=float(listing.price_per_share) * shares_to_buy,
-        tx_type=TransactionType.SECONDARY_BUY,
-        onchain_tx_hash=tx_hash,
+    db.ownerships.update_one(
+        {"_id": seller_ownership["_id"]},
+        {"$inc": {"shares": -shares_to_buy}, "$set": {"updated_at": utc_now()}},
     )
-    db.add(tx)
-
-    sell_log = InvestmentTransaction(
-        property_id=listing.property_id,
-        buyer_id=buyer.id,
-        seller_id=listing.seller_id,
-        shares=shares_to_buy,
-        amount=float(listing.price_per_share) * shares_to_buy,
-        tx_type=TransactionType.SECONDARY_SELL,
-        onchain_tx_hash=tx_hash,
+    buyer_ownership = _get_or_create_ownership(db, listing["property_id"], buyer["id"])
+    db.ownerships.update_one(
+        {"_id": buyer_ownership["id"]},
+        {"$inc": {"shares": shares_to_buy}, "$set": {"updated_at": utc_now()}},
     )
-    db.add(sell_log)
 
-    db.commit()
-    db.refresh(tx)
-    return tx
+    updated_listing = db.share_listings.find_one_and_update(
+        {"_id": listing_id, "is_active": True, "shares_for_sale": {"$gte": shares_to_buy}},
+        {"$inc": {"shares_for_sale": -shares_to_buy}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if updated_listing and updated_listing.get("shares_for_sale", 0) == 0:
+        db.share_listings.update_one({"_id": listing_id}, {"$set": {"is_active": False}})
+
+    tx_id = get_next_sequence(db, "investment_transactions")
+    amount = float(listing["price_per_share"]) * shares_to_buy
+    tx = {
+        "_id": tx_id,
+        "property_id": listing["property_id"],
+        "buyer_id": buyer["id"],
+        "seller_id": listing["seller_id"],
+        "shares": shares_to_buy,
+        "amount": amount,
+        "tx_type": TransactionType.SECONDARY_BUY.value,
+        "onchain_tx_hash": tx_hash,
+        "created_at": utc_now(),
+    }
+    db.investment_transactions.insert_one(tx)
+
+    sell_log_id = get_next_sequence(db, "investment_transactions")
+    db.investment_transactions.insert_one(
+        {
+            "_id": sell_log_id,
+            "property_id": listing["property_id"],
+            "buyer_id": buyer["id"],
+            "seller_id": listing["seller_id"],
+            "shares": shares_to_buy,
+            "amount": amount,
+            "tx_type": TransactionType.SECONDARY_SELL.value,
+            "onchain_tx_hash": tx_hash,
+            "created_at": utc_now(),
+        }
+    )
+
+    return serialize_doc(tx)
 
 
-def simulate_partial_exit(db: Session, investor: User, property_id: int, shares_to_exit: int) -> dict:
+def simulate_partial_exit(db: Database, investor: dict, property_id: int, shares_to_exit: int) -> dict:
     """Simulate a partial exit scenario with tax and returns estimations (Indian fintech compliance)."""
-    property_item = db.query(Property).filter(Property.id == property_id).first()
+    property_item = db.properties.find_one({"_id": property_id})
     if not property_item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found")
 
-    ownership = (
-        db.query(Ownership)
-        .filter(Ownership.property_id == property_id, Ownership.investor_id == investor.id)
-        .first()
-    )
-    owned_shares = ownership.shares if ownership else 0
+    ownership = db.ownerships.find_one({"property_id": property_id, "investor_id": investor["id"]})
+    owned_shares = ownership.get("shares", 0) if ownership else 0
 
     if shares_to_exit > owned_shares:
         raise HTTPException(
@@ -166,9 +183,9 @@ def simulate_partial_exit(db: Session, investor: User, property_id: int, shares_
             detail=f"You own {owned_shares} shares. Cannot exit {shares_to_exit}.",
         )
 
-    share_price = float(property_item.price_per_share)
-    roi_rate = float(property_item.ai_predicted_roi) / 100
-    rental_yield_rate = float(property_item.rental_yield) / 100
+    share_price = float(property_item["price_per_share"])
+    roi_rate = float(property_item["ai_predicted_roi"]) / 100
+    rental_yield_rate = float(property_item["rental_yield"]) / 100
 
     cost_basis = share_price * shares_to_exit
     # Estimate appreciated value using AI-predicted ROI (annual)
@@ -186,8 +203,8 @@ def simulate_partial_exit(db: Session, investor: User, property_id: int, shares_
 
     return {
         "property_id": property_id,
-        "property_title": property_item.title,
-        "city": property_item.city,
+        "property_title": property_item["title"],
+        "city": property_item["city"],
         "total_shares_owned": owned_shares,
         "shares_to_exit": shares_to_exit,
         "shares_retained": owned_shares - shares_to_exit,
@@ -203,69 +220,68 @@ def simulate_partial_exit(db: Session, investor: User, property_id: int, shares_
     }
 
 
-def distribute_monthly_roi(db: Session, payout_month: Optional[str] = None) -> dict:
+def distribute_monthly_roi(db: Database, payout_month: Optional[str] = None) -> dict:
     if not payout_month:
         payout_month = datetime.utcnow().strftime("%Y-%m")
 
-    holdings = (
-        db.query(Ownership, Property, User)
-        .join(Property, Property.id == Ownership.property_id)
-        .join(User, User.id == Ownership.investor_id)
-        .filter(User.role == UserRole.INVESTOR)
-        .all()
-    )
-
-    payouts: list[InvestorPayout] = []
+    ownerships = list(db.ownerships.find({}))
+    payouts: list[dict] = []
     total_amount = 0.0
     investors_paid = set()
 
-    for ownership, prop, investor in holdings:
-        if ownership.shares <= 0:
+    for ownership in ownerships:
+        if ownership.get("shares", 0) <= 0:
             continue
 
-        existing = (
-            db.query(InvestorPayout)
-            .filter(
-                InvestorPayout.investor_id == investor.id,
-                InvestorPayout.property_id == prop.id,
-                InvestorPayout.payout_month == payout_month,
-            )
-            .first()
+        investor = db.users.find_one({"_id": ownership["investor_id"], "role": UserRole.INVESTOR.value})
+        if not investor:
+            continue
+        prop = db.properties.find_one({"_id": ownership["property_id"]})
+        if not prop:
+            continue
+
+        existing = db.investor_payouts.find_one(
+            {
+                "investor_id": investor["_id"],
+                "property_id": prop["_id"],
+                "payout_month": payout_month,
+            }
         )
         if existing:
             continue
 
-        monthly_rate = (float(prop.ai_predicted_roi) / 100) / 12
-        amount = round(float(prop.price_per_share) * ownership.shares * monthly_rate, 2)
+        monthly_rate = (float(prop["ai_predicted_roi"]) / 100) / 12
+        amount = round(float(prop["price_per_share"]) * ownership["shares"] * monthly_rate, 2)
         if amount <= 0:
             continue
 
         tx_hash = None
-        if blockchain_service.enabled and investor.wallet_address:
+        if blockchain_service.enabled and investor.get("wallet_address"):
             amount_wei = int(round(amount * 10**18))
-            tx_hash = blockchain_service.payout_roi(prop.id, investor.wallet_address, amount_wei)
+            tx_hash = blockchain_service.payout_roi(prop["_id"], investor["wallet_address"], amount_wei)
         else:
-            investor.wallet_balance = float(investor.wallet_balance or 0) + amount
+            db.users.update_one(
+                {"_id": investor["_id"]},
+                {"$inc": {"wallet_balance": amount}},
+            )
 
-        payout = InvestorPayout(
-            investor_id=investor.id,
-            property_id=prop.id,
-            payout_month=payout_month,
-            amount=amount,
-            onchain_tx_hash=tx_hash or "wallet_credit",
-        )
-        db.add(payout)
+        payout_id = get_next_sequence(db, "investor_payouts")
+        payout = {
+            "_id": payout_id,
+            "investor_id": investor["_id"],
+            "property_id": prop["_id"],
+            "payout_month": payout_month,
+            "amount": amount,
+            "onchain_tx_hash": tx_hash or "wallet_credit",
+            "created_at": utc_now(),
+        }
+        db.investor_payouts.insert_one(payout)
         payouts.append(payout)
         total_amount += amount
-        investors_paid.add(investor.id)
-
-    db.commit()
-    for payout in payouts:
-        db.refresh(payout)
-
+        investors_paid.add(investor["_id"])
     return {
         "payout_month": payout_month,
         "total_investors": len(investors_paid),
         "total_amount": round(total_amount, 2),
-        "payouts": payouts,
+        "payouts": serialize_docs(payouts),
     }
