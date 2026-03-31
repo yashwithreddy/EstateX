@@ -7,24 +7,24 @@ const ROLE_COLOR = { admin: 'bg-purple-100 text-purple-700', property_owner: 'bg
 function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState('stats');
   const [stats, setStats] = useState(null);
-  const [docs, setDocs] = useState([]);
   const [props, setProps] = useState([]);
   const [users, setUsers] = useState([]);
   const [error, setError] = useState('');
   const [reason, setReason] = useState('');
   const [actionMsg, setActionMsg] = useState('');
+  const [propertyDocs, setPropertyDocs] = useState({});
+  const [docsOpen, setDocsOpen] = useState({});
+  const [docsLoading, setDocsLoading] = useState({});
 
   const load = async () => {
     try {
       setError('');
-      const [statsRes, docsRes, propsRes, usersRes] = await Promise.all([
+      const [statsRes, propsRes, usersRes] = await Promise.all([
         dashboardApi.admin(),
-        adminApi.pendingDocuments(),
         adminApi.pendingProperties(),
         adminApi.listUsers(),
       ]);
       setStats(statsRes.data);
-      setDocs(docsRes.data);
       setProps(propsRes.data);
       setUsers(usersRes.data);
     } catch (err) {
@@ -34,10 +34,18 @@ function AdminDashboardPage() {
 
   useEffect(() => { load(); }, []);
 
-  const verifyDoc = async (id, approve) => {
+  const verifyDoc = async (id, approve, propertyId) => {
     setActionMsg('');
     try {
-      await adminApi.verifyDocument(id, approve, reason);
+      const res = await adminApi.verifyDocument(id, approve, reason);
+      if (propertyId) {
+        setPropertyDocs((prev) => ({
+          ...prev,
+          [propertyId]: (prev[propertyId] || []).map((doc) =>
+            doc.document_id === id ? { ...doc, is_verified: res.data?.is_verified ?? approve } : doc
+          ),
+        }));
+      }
       setActionMsg(`✓ Document ${approve ? 'approved' : 'rejected'}.`);
       load();
     } catch (e) { setActionMsg(`✗ ${e.message}`); }
@@ -52,6 +60,24 @@ function AdminDashboardPage() {
     } catch (e) { setActionMsg(`✗ ${e.message}`); }
   };
 
+  const toggleDocs = async (propertyId) => {
+    setActionMsg('');
+    const isOpen = Boolean(docsOpen[propertyId]);
+    setDocsOpen((prev) => ({ ...prev, [propertyId]: !isOpen }));
+    if (isOpen || propertyDocs[propertyId]) {
+      return;
+    }
+    setDocsLoading((prev) => ({ ...prev, [propertyId]: true }));
+    try {
+      const res = await adminApi.propertyDocuments(propertyId);
+      setPropertyDocs((prev) => ({ ...prev, [propertyId]: res.data }));
+    } catch (e) {
+      setActionMsg(`✗ ${e.message}`);
+    } finally {
+      setDocsLoading((prev) => ({ ...prev, [propertyId]: false }));
+    }
+  };
+
   const toggleUser = async (id) => {
     setActionMsg('');
     try {
@@ -59,6 +85,29 @@ function AdminDashboardPage() {
       setActionMsg(`✓ User ${res.data.is_active ? 'activated' : 'deactivated'}.`);
       load();
     } catch (e) { setActionMsg(`✗ ${e.message}`); }
+  };
+
+  const openDocument = async (doc) => {
+    setActionMsg('');
+    // Open a blank tab synchronously to avoid popup blockers, then fill it once the blob is ready.
+    const popup = window.open('', '_blank', 'noopener');
+    try {
+      const res = await adminApi.downloadDocument(doc.document_id);
+      const contentType = res.headers?.['content-type'] || doc.mime_type || 'application/octet-stream';
+      const blob = new Blob([res.data], { type: contentType });
+      const url = URL.createObjectURL(blob);
+      if (popup) {
+        popup.location.href = url;
+      } else {
+        window.location.assign(url);
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e) {
+      if (popup) {
+        popup.close();
+      }
+      setActionMsg(`✗ ${e.message}`);
+    }
   };
 
   if (error) return <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700">{error}</div>;
@@ -94,9 +143,6 @@ function AdminDashboardPage() {
         <button className={activeTab === 'properties' ? ACTIVE : INACTIVE} onClick={() => setActiveTab('properties')}>
           🏢 Pending Properties {props.length > 0 && <span className="ml-1 rounded-full bg-rose-500 px-1.5 text-xs text-white">{props.length}</span>}
         </button>
-        <button className={activeTab === 'documents' ? ACTIVE : INACTIVE} onClick={() => setActiveTab('documents')}>
-          📄 Pending Docs {docs.length > 0 && <span className="ml-1 rounded-full bg-amber-500 px-1.5 text-xs text-white">{docs.length}</span>}
-        </button>
         <button className={activeTab === 'users' ? ACTIVE : INACTIVE} onClick={() => setActiveTab('users')}>👥 Users ({users.length})</button>
       </div>
 
@@ -108,7 +154,7 @@ function AdminDashboardPage() {
       )}
 
       {/* Rejection reason input - shared */}
-      {(activeTab === 'properties' || activeTab === 'documents') && (
+      {activeTab === 'properties' && (
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <label className="mb-1 block text-xs font-medium text-slate-600">Rejection Reason (optional – used when rejecting)</label>
           <input
@@ -147,11 +193,24 @@ function AdminDashboardPage() {
           ) : (
             <div className="space-y-3">
               {props.map((p) => (
+                (() => {
+                  const canApprove = p.document_count >= 4 && p.verified_doc_count === p.document_count;
+                  const docList = propertyDocs[p.property_id] || [];
+                  return (
                 <div key={p.property_id} className="rounded-xl border border-slate-100 p-4 hover:bg-slate-50">
                   <div className="mb-2 flex items-start justify-between">
-                    <div>
+                    <div className="flex items-start gap-3">
+                      <div className="h-14 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                        {p.image_url ? (
+                          <img src={p.image_url} alt={p.title} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-xs text-slate-400">No Image</div>
+                        )}
+                      </div>
+                      <div>
                       <p className="font-semibold text-slate-900">{p.title}</p>
                       <p className="text-xs text-slate-500">{p.city}, {p.state} · Owner #{p.owner_id}</p>
+                      </div>
                     </div>
                     <div className="text-right text-xs text-slate-500">
                       <p>Docs: {p.verified_doc_count}/{p.document_count} verified</p>
@@ -160,55 +219,79 @@ function AdminDashboardPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => approveProp(p.property_id, true)} className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => approveProp(p.property_id, true)}
+                      disabled={!canApprove}
+                      className={`rounded-xl px-4 py-2 text-xs font-semibold text-white ${canApprove ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-emerald-300 cursor-not-allowed'}`}
+                    >
                       ✓ Approve & List
                     </button>
                     <button onClick={() => approveProp(p.property_id, false)} className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-500">
                       ✗ Reject
                     </button>
+                    <button
+                      onClick={() => toggleDocs(p.property_id)}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      {docsOpen[p.property_id] ? 'Hide Docs' : 'View Docs'}
+                    </button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Pending Documents tab */}
-      {activeTab === 'documents' && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 font-semibold text-slate-900">Documents Awaiting Verification</h3>
-          {docs.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-10 text-slate-400">
-              <span className="text-4xl">📋</span>
-              <p className="text-sm">No pending documents. All verified!</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {docs.map((doc) => (
-                <div key={doc.document_id} className="rounded-xl border border-slate-100 p-4 hover:bg-slate-50">
-                  <div className="mb-2 flex items-start justify-between">
-                    <div>
-                      <p className="font-semibold text-slate-900">{doc.property_title}</p>
-                      <p className="text-xs text-slate-500">
-                        {doc.document_type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} · 
-                        SHA256: <span className="font-mono">{doc.sha256_hash?.slice(0, 12)}…</span>
-                      </p>
+                  {!canApprove && (
+                    <p className="mt-2 text-xs text-amber-600">Approve is enabled only after all documents are verified.</p>
+                  )}
+                  {docsOpen[p.property_id] && (
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs">
+                      {docsLoading[p.property_id] ? (
+                        <p className="text-slate-400">Loading documents…</p>
+                      ) : docList.length === 0 ? (
+                        <p className="text-slate-400">No documents uploaded.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {docList.map((doc) => (
+                            <div key={doc.document_id} className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="font-medium text-slate-700">
+                                  {doc.document_type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                                </p>
+                                <p className="text-[11px] text-slate-400">{doc.file_name}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${doc.is_verified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                  {doc.is_verified ? 'Verified' : 'Pending'}
+                                </span>
+                                <button
+                                  onClick={() => verifyDoc(doc.document_id, true, p.property_id)}
+                                  className="rounded-lg bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-500"
+                                >
+                                  ✓ Accept
+                                </button>
+                                <button
+                                  onClick={() => verifyDoc(doc.document_id, false, p.property_id)}
+                                  className="rounded-lg bg-rose-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-rose-500"
+                                >
+                                  ✗ Reject
+                                </button>
+                                <a
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    openDocument(doc);
+                                  }}
+                                  href="#"
+                                  className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                                >
+                                  Open
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${doc.verification_status === 'verified' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {doc.verification_status}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => verifyDoc(doc.document_id, true)} className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500">
-                      ✓ Verify
-                    </button>
-                    <button onClick={() => verifyDoc(doc.document_id, false)} className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-500">
-                      ✗ Reject
-                    </button>
-                  </div>
+                  )}
                 </div>
+                  );
+                })()
               ))}
             </div>
           )}

@@ -20,12 +20,29 @@ function LiquidityPage() {
   const [listingMsg, setListingMsg] = useState('');
   const [tradeMsg, setTradeMsg] = useState('');
 
-  const loadData = () => {
-    investmentApi.getListings().then((res) => setListings(res.data)).catch(console.error);
-    dashboardApi.investor().then((res) => setPortfolio(res.data.portfolio || [])).catch(console.error);
+  const adjustPortfolioShares = (propertyId, delta) => {
+    if (!propertyId || !Number.isFinite(delta)) return;
+    setPortfolio((prev) =>
+      prev.map((item) =>
+        Number(item.property_id) === Number(propertyId)
+          ? { ...item, shares: Math.max(0, Number(item.shares || 0) + delta) }
+          : item
+      )
+    );
   };
 
+  const loadData = () => Promise.all([
+    investmentApi.getListings().then((res) => setListings(res.data)).catch(console.error),
+    dashboardApi.investor().then((res) => setPortfolio(res.data.portfolio || [])).catch(console.error),
+  ]);
+
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    if (activeTab === 'market') {
+      investmentApi.getListings().then((res) => setListings(res.data)).catch(console.error);
+    }
+  }, [activeTab]);
 
   const runSimulation = async (e) => {
     e.preventDefault();
@@ -39,6 +56,29 @@ function LiquidityPage() {
         shares_to_exit: Number(simForm.shares_to_exit),
       });
       setSimResult(res.data);
+      const propertyId = Number(simForm.property_id);
+      const sharesToExit = Number(simForm.shares_to_exit);
+      const portfolioItem = portfolio.find((item) => Number(item.property_id) === propertyId);
+      const fallbackPrice = res?.data?.current_market_value
+        ? Number(res.data.current_market_value) / sharesToExit
+        : null;
+      const pricePerShare = Number(portfolioItem?.share_price ?? fallbackPrice);
+
+      if (Number.isFinite(pricePerShare) && pricePerShare > 0) {
+        const listingRes = await investmentApi.createListing({
+          property_id: propertyId,
+          shares_for_sale: sharesToExit,
+          price_per_share: pricePerShare,
+        });
+        if (listingRes?.data) {
+          setListings((prev) => [listingRes.data, ...prev.filter((item) => item.id !== listingRes.data.id)]);
+        } else {
+          investmentApi.getListings().then((listingsRes) => setListings(listingsRes.data)).catch(console.error);
+        }
+        adjustPortfolioShares(propertyId, -sharesToExit);
+        window.dispatchEvent(new Event('estatex:portfolio-updated'));
+        setActiveTab('market');
+      }
     } catch (e) {
       setSimError(e.message || 'Simulation failed');
     } finally {
@@ -50,26 +90,34 @@ function LiquidityPage() {
     e.preventDefault();
     setListingMsg('');
     try {
-      await investmentApi.createListing({
+      const res = await investmentApi.createListing({
         property_id: Number(createForm.property_id),
         shares_for_sale: Number(createForm.shares_for_sale),
         price_per_share: Number(createForm.price_per_share),
       });
       setListingMsg('✓ Sell order created successfully!');
       setCreateForm({ property_id: '', shares_for_sale: '', price_per_share: '' });
-      loadData();
+      if (res?.data) {
+        setListings((prev) => [res.data, ...prev.filter((item) => item.id !== res.data.id)]);
+      } else {
+        loadData();
+      }
+      adjustPortfolioShares(Number(createForm.property_id), -Number(createForm.shares_for_sale));
+      window.dispatchEvent(new Event('estatex:portfolio-updated'));
+      setActiveTab('market');
     } catch (e) {
       setListingMsg(`✗ ${e.message}`);
     }
   };
 
-  const buyFromListing = async (listingId) => {
+  const buyFromListing = async (listing, isOwnListing) => {
     setTradeMsg('');
     try {
       const wallet = user?.wallet_address || '0x2222222222222222222222222222222222222222';
-      await investmentApi.tradeShares({ listing_id: listingId, shares_to_buy: 1, buyer_wallet_address: wallet });
-      setTradeMsg('✓ Share purchased from secondary market!');
-      loadData();
+      await investmentApi.tradeShares({ listing_id: listing.id, shares_to_buy: 1, buyer_wallet_address: wallet });
+      setTradeMsg(isOwnListing ? '✓ Listing updated (1 share removed).' : '✓ Share purchased from secondary market!');
+      await loadData();
+      window.dispatchEvent(new Event('estatex:portfolio-updated'));
     } catch (e) {
       setTradeMsg(`✗ ${e.message}`);
     }
@@ -251,7 +299,9 @@ function LiquidityPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {listings.map((listing) => (
+              {listings.map((listing) => {
+                const isOwnListing = Number(listing.seller_id) === Number(user?.id);
+                return (
                 <div key={listing.id} className="flex items-center justify-between rounded-xl border border-slate-100 p-4 hover:bg-slate-50">
                   <div>
                     <p className="font-semibold text-slate-800">Property #{listing.property_id}</p>
@@ -263,13 +313,14 @@ function LiquidityPage() {
                     </p>
                   </div>
                   <button
-                    onClick={() => buyFromListing(listing.id)}
+                    onClick={() => buyFromListing(listing, isOwnListing)}
                     className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500"
                   >
-                    Buy 1 Share
+                    {isOwnListing ? 'Remove 1 Share' : 'Buy 1 Share'}
                   </button>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>

@@ -1,9 +1,12 @@
 import logging
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from pymongo import ReturnDocument
 from pymongo.database import Database
 
+from app.core.config import settings
 from app.deps import require_roles
 from app.db.session import get_db
 from app.models import UserRole
@@ -59,6 +62,7 @@ def get_pending_properties(
             "title": p["title"],
             "city": p["city"],
             "state": p["state"],
+            "image_url": p.get("image_url"),
             "verification_status": p["listing_status"],
             "is_verified": p.get("is_verified"),
             "owner_id": p["owner_id"],
@@ -108,12 +112,37 @@ def property_documents(
             "document_id": d["_id"],
             "document_type": d["document_type"],
             "file_name": d["file_name"],
-            "file_path": d["file_path"],
             "sha256_hash": d["sha256_hash"],
             "is_verified": d.get("is_verified"),
+            "mime_type": d.get("mime_type"),
+            "download_url": f"/api/v1/admin/documents/{d['_id']}/download",
         }
         for d in docs
     ]
+
+
+@router.get("/documents/{document_id}/download")
+def download_document(
+    document_id: int,
+    db: Database = Depends(get_db),
+    _: dict = Depends(require_roles(UserRole.ADMIN)),
+):
+    doc = db.documents.find_one({"_id": document_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    uploads_dir = Path(settings.uploads_dir).resolve()
+    file_path = Path(doc["file_path"]).resolve()
+    if uploads_dir not in file_path.parents and file_path != uploads_dir:
+        raise HTTPException(status_code=404, detail="Document not available")
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    return FileResponse(
+        path=file_path,
+        media_type=doc.get("mime_type") or "application/pdf",
+        filename=doc.get("file_name") or "document.pdf",
+    )
 
 
 @router.get("/users")

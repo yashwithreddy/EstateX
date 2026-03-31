@@ -54,6 +54,9 @@ def buy_primary_shares(db: Database, investor: dict, property_id: int, shares: i
 
     tx_id = get_next_sequence(db, "investment_transactions")
     amount = float(property_item["price_per_share"]) * shares
+    owner = db.users.find_one({"_id": property_item.get("owner_id")})
+    if owner:
+        db.users.update_one({"_id": owner["_id"]}, {"$inc": {"wallet_balance": amount}})
     tx = {
         "_id": tx_id,
         "property_id": property_id,
@@ -77,8 +80,19 @@ def list_shares_for_sale(
     price_per_share: float,
 ) -> dict:
     ownership = db.ownerships.find_one({"property_id": property_id, "investor_id": seller["id"]})
-    if not ownership or ownership.get("shares", 0) < shares_for_sale:
+    if not ownership:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient shares to list")
+
+    total_shares = ownership.get("shares", 0)
+    reserved_shares = ownership.get("reserved_shares", 0)
+    available_shares = total_shares - reserved_shares
+    if available_shares < shares_for_sale:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient shares to list")
+
+    db.ownerships.update_one(
+        {"_id": ownership["_id"]},
+        {"$inc": {"reserved_shares": shares_for_sale}, "$set": {"updated_at": utc_now()}},
+    )
 
     listing_id = get_next_sequence(db, "share_listings")
     listing = {
@@ -110,16 +124,44 @@ def buy_secondary_shares(
     seller_ownership = db.ownerships.find_one(
         {"property_id": listing["property_id"], "investor_id": listing["seller_id"]}
     )
-    if not seller_ownership or seller_ownership.get("shares", 0) < shares_to_buy:
+    if not seller_ownership:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Seller does not hold enough shares")
+    if seller_ownership.get("reserved_shares", 0) < shares_to_buy:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Seller does not hold enough shares")
+
+    if buyer["id"] == listing["seller_id"]:
+        updated_listing = db.share_listings.find_one_and_update(
+            {"_id": listing_id, "is_active": True, "shares_for_sale": {"$gte": shares_to_buy}},
+            {"$inc": {"shares_for_sale": -shares_to_buy}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if not updated_listing:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Listing availability changed. Retry.")
+        db.ownerships.update_one(
+            {"_id": seller_ownership["_id"]},
+            {"$inc": {"reserved_shares": -shares_to_buy}, "$set": {"updated_at": utc_now()}},
+        )
+        if updated_listing.get("shares_for_sale", 0) == 0:
+            db.share_listings.update_one({"_id": listing_id}, {"$set": {"is_active": False}})
+        return {
+            "listing_id": listing_id,
+            "shares_unlisted": shares_to_buy,
+            "remaining_shares": max(0, updated_listing.get("shares_for_sale", 0)),
+            "status": "unlisted",
+        }
 
     seller = db.users.find_one({"_id": listing["seller_id"]})
     from_wallet = seller.get("wallet_address") if seller else ""
-    tx_hash = blockchain_service.transfer_secondary(listing["property_id"], from_wallet, buyer_wallet_address, shares_to_buy)
+    tx_hash = blockchain_service.transfer_secondary(
+        listing["property_id"],
+        from_wallet,
+        buyer_wallet_address,
+        shares_to_buy,
+    )
 
     db.ownerships.update_one(
         {"_id": seller_ownership["_id"]},
-        {"$inc": {"shares": -shares_to_buy}, "$set": {"updated_at": utc_now()}},
+        {"$inc": {"shares": -shares_to_buy, "reserved_shares": -shares_to_buy}, "$set": {"updated_at": utc_now()}},
     )
     buyer_ownership = _get_or_create_ownership(db, listing["property_id"], buyer["id"])
     db.ownerships.update_one(
@@ -137,6 +179,9 @@ def buy_secondary_shares(
 
     tx_id = get_next_sequence(db, "investment_transactions")
     amount = float(listing["price_per_share"]) * shares_to_buy
+
+    if not blockchain_service.enabled and seller:
+        db.users.update_one({"_id": seller["_id"]}, {"$inc": {"wallet_balance": amount}})
     tx = {
         "_id": tx_id,
         "property_id": listing["property_id"],

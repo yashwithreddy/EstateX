@@ -50,7 +50,6 @@ def create_property(
     demand_index: float = Form(...),
     market_trend: float = Form(...),
     ai_predicted_roi: float = Form(...),
-    risk_level: str = Form(...),
     sale_deed: Optional[UploadFile] = File(None),
     encumbrance_certificate: Optional[UploadFile] = File(None),
     property_tax_receipt: Optional[UploadFile] = File(None),
@@ -79,7 +78,6 @@ def create_property(
         demand_index=demand_index,
         market_trend=market_trend,
         ai_predicted_roi=ai_predicted_roi,
-        risk_level=risk_level,
     )
     return create_property_with_documents(
         db,

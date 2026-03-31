@@ -52,6 +52,7 @@ function PropertyCard({ property, canInvest }) {
       const wallet = user?.wallet_address || '0x2222222222222222222222222222222222222222';
       await investmentApi.buyShares({ property_id: property.id, shares: Number(shares), wallet_address: wallet });
       setMessage(`✓ ${shares} share(s) purchased successfully!`);
+      window.dispatchEvent(new Event('estatex:portfolio-updated'));
     } catch (e) {
       setMessage(`✗ ${e.message}`);
     } finally {

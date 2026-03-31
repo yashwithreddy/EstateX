@@ -1,70 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Bar } from 'react-chartjs-2';
-import { Chart, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
-import { aiApi, investmentApi, propertyApi } from '../api/endpoints';
+import { investmentApi, propertyApi } from '../api/endpoints';
 import { useAuth } from '../context/AuthContext';
 import RiskBadge from '../components/RiskBadge';
 
-Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
-
 const INR = (val) => '₹' + Number(val).toLocaleString('en-IN');
-
-const FEATURE_ICONS = {
-  'Location Score': '📍',
-  'Rental Demand Index': '🏘️',
-  'Infrastructure Growth': '🏗️',
-  'Vacancy Rate': '📉',
-  'Market Appreciation Trend': '📈',
-};
 
 function PropertyDetailsPage() {
   const { id } = useParams();
   const { user, updateWallet } = useAuth();
   const [property, setProperty] = useState(null);
-  const [explain, setExplain] = useState(null);
   const [shares, setShares] = useState(1);
   const [investing, setInvesting] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     propertyApi.detail(id).then((res) => {
-      const p = res.data;
-      setProperty(p);
-      return aiApi.explain({
-        property_price: Number(p.property_price),
-        rental_yield: p.rental_yield,
-        demand_index: p.demand_index,
-        market_trend: p.market_trend,
-      });
-    }).then((res) => setExplain(res.data)).catch(console.error);
+      setProperty(res.data);
+    }).catch(console.error);
   }, [id]);
-
-  const { chartData, totalContrib, featureList } = useMemo(() => {
-    if (!explain) return { chartData: null, totalContrib: 0, featureList: [] };
-    const entries = Object.entries(explain.feature_contributions).filter(
-      ([k]) => k !== 'Rental Demand Index' && k !== 'Vacancy Rate'
-    );
-    const absVals = entries.map(([, v]) => Math.abs(v));
-    const total = absVals.reduce((a, b) => a + b, 0) || 1;
-    const featureList = entries.map(([k, v]) => ({
-      name: k,
-      value: v,
-      pct: Math.round((Math.abs(v) / total) * 100),
-      positive: v >= 0,
-    }));
-    const colors = featureList.map((f) => (f.positive ? '#0ea5e9' : '#f43f5e'));
-    const chartData = {
-      labels: featureList.map((f) => f.name),
-      datasets: [{
-        label: 'SHAP Contribution',
-        data: featureList.map((f) => f.value),
-        backgroundColor: colors,
-        borderRadius: 6,
-      }],
-    };
-    return { chartData, totalContrib: total, featureList };
-  }, [explain]);
 
   const invest = async () => {
     if (!shares || shares < 1) return;
@@ -91,6 +45,7 @@ function PropertyDetailsPage() {
       const res = await investmentApi.buyShares({ property_id: Number(id), shares: Number(shares), wallet_address: wallet });
       const txHash = res.data?.onchain_tx_hash || 'Pending/Mock';
       setMessage(`✓ Successfully purchased ${shares} share(s) for ${INR(Number(shares) * Number(property.price_per_share))}. Tx Hash: ${txHash}`);
+      window.dispatchEvent(new Event('estatex:portfolio-updated'));
     } catch (e) {
       setMessage(`✗ ${e.message || 'Investment failed'}`);
     } finally {
@@ -167,57 +122,6 @@ function PropertyDetailsPage() {
           <div className="h-full rounded-full bg-sky-500 transition-all" style={{ width: `${soldPercent}%` }} />
         </div>
         <p className="mt-2 text-xs text-slate-400">Total shares: {property.total_shares.toLocaleString('en-IN')}</p>
-      </div>
-
-      {/* SHAP Explainability */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-4">
-          <h2 className="text-lg font-bold text-slate-900">AI Explainability (SHAP)</h2>
-          <p className="text-xs text-slate-500">Top 5 factors driving the ROI prediction for this property</p>
-        </div>
-
-        {explain ? (
-          <div className="grid gap-5 md:grid-cols-2">
-            {/* Bar chart */}
-            <div>
-              <Bar
-                data={chartData}
-                options={{
-                  indexAxis: 'y',
-                  plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` ${c.raw.toFixed(3)} contribution` } } },
-                  scales: { x: { grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } },
-                  responsive: true,
-                  maintainAspectRatio: false,
-                }}
-                style={{ height: '200px' }}
-              />
-            </div>
-
-            {/* Feature list with percentage bars */}
-            <div className="space-y-3">
-              {featureList.map((f) => (
-                <div key={f.name}>
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="font-medium text-slate-700">
-                      {FEATURE_ICONS[f.name] || '•'} {f.name}
-                    </span>
-                    <span className={`font-semibold ${f.positive ? 'text-sky-600' : 'text-rose-600'}`}>
-                      {f.positive ? '+' : ''}{f.pct}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className={`h-full rounded-full transition-all ${f.positive ? 'bg-sky-400' : 'bg-rose-400'}`}
-                      style={{ width: `${f.pct}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="flex h-32 items-center justify-center text-slate-400 text-sm">Loading AI explanation…</div>
-        )}
       </div>
 
       {/* Investment Calculator */}
@@ -305,5 +209,3 @@ function PropertyDetailsPage() {
 }
 
 export default PropertyDetailsPage;
-
-Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);

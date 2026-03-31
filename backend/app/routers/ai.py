@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter
 
 from app.ml.service import ml_service
-from app.schemas.ai import ExplainRequest, ExplainResponse, RiskRequest, RiskResponse, ROIRequest, ROIResponse
+from app.schemas.ai import RiskRequest, RiskResponse, ROIRequest, ROIResponse
 
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
 logger = logging.getLogger(__name__)
@@ -19,9 +19,3 @@ def predict_roi(payload: ROIRequest):
 def predict_risk(payload: RiskRequest):
     logger.info("ai_risk")
     return ml_service.predict_risk(payload.model_dump())
-
-
-@router.post("/explain", response_model=ExplainResponse)
-def explain_roi(payload: ExplainRequest):
-    logger.info("ai_explain")
-    return ml_service.explain_roi(payload.model_dump())

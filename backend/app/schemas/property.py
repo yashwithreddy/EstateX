@@ -3,12 +3,12 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.models import DocumentType, ListingStatus, PropertyType, RiskLevel
+from app.models import DocumentType, ListingStatus, PropertyType
 
 
 class PropertyCreate(BaseModel):
     title: str = Field(min_length=5, max_length=180)
-    description: str = Field(min_length=15, max_length=1000)
+    description: str = Field(min_length=1, max_length=1000)
     city: str = Field(min_length=2, max_length=100)
     state: str = Field(min_length=2, max_length=100)
     location: str = Field(min_length=3, max_length=250)
@@ -20,7 +20,6 @@ class PropertyCreate(BaseModel):
     demand_index: float = Field(ge=0, le=1)
     market_trend: float = Field(ge=0, le=1)
     ai_predicted_roi: float = Field(ge=0, le=100)
-    risk_level: RiskLevel
 
 
 class DocumentOut(BaseModel):
@@ -53,7 +52,6 @@ class PropertyOut(BaseModel):
     demand_index: float
     market_trend: float
     ai_predicted_roi: float
-    risk_level: RiskLevel
     listing_status: ListingStatus
     is_verified: bool
     rejection_reason: Optional[str]

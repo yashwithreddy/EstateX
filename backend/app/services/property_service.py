@@ -75,7 +75,6 @@ def create_property_with_documents(
         "demand_index": payload.demand_index,
         "market_trend": payload.market_trend,
         "ai_predicted_roi": payload.ai_predicted_roi,
-        "risk_level": payload.risk_level.value,
         "listing_status": ListingStatus.PENDING.value,
         "is_verified": False,
         "rejection_reason": None,

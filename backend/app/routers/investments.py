@@ -73,8 +73,16 @@ def buy_from_listing(
         payload.listing_id,
         payload.shares_to_buy,
     )
-    tx = buy_secondary_shares(db, investor, payload.listing_id, payload.shares_to_buy, payload.buyer_wallet_address)
-    return {"transaction_id": tx["id"], "tx_hash": tx.get("onchain_tx_hash")}
+    result = buy_secondary_shares(
+        db,
+        investor,
+        payload.listing_id,
+        payload.shares_to_buy,
+        payload.buyer_wallet_address,
+    )
+    if result.get("status") == "unlisted":
+        return result
+    return {"transaction_id": result["id"], "tx_hash": result.get("onchain_tx_hash")}
 
 
 @router.post("/exit-simulate")

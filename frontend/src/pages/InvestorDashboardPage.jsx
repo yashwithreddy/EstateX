@@ -37,6 +37,16 @@ function InvestorDashboardPage() {
   }, []);
 
   useEffect(() => {
+    const handleRefresh = () => {
+      dashboardApi.investor()
+        .then((res) => setDashboard(res.data))
+        .catch((err) => setError(err.message));
+    };
+    window.addEventListener('estatex:portfolio-updated', handleRefresh);
+    return () => window.removeEventListener('estatex:portfolio-updated', handleRefresh);
+  }, []);
+
+  useEffect(() => {
     setWalletAddress(user?.wallet_address || '');
   }, [user?.wallet_address]);
 
@@ -96,6 +106,12 @@ function InvestorDashboardPage() {
           value={INR(totalRentalEst)}
           sub="Based on AI predictions"
           color="bg-emerald-50 border-emerald-200"
+        />
+        <StatBox
+          label="Shares Listed"
+          value={(dashboard.total_listed_shares || 0).toLocaleString('en-IN')}
+          sub="On secondary market"
+          color="bg-amber-50 border-amber-200"
         />
         <StatBox
           label="Transactions"
@@ -196,6 +212,7 @@ function InvestorDashboardPage() {
                   <tr className="text-slate-400">
                     <th className="pb-2">Property</th>
                     <th className="pb-2">Shares</th>
+                    <th className="pb-2">Listed</th>
                     <th className="pb-2">ROI</th>
                     <th className="pb-2">Risk</th>
                   </tr>
@@ -208,6 +225,7 @@ function InvestorDashboardPage() {
                         <p className="text-slate-400">{p.city}</p>
                       </td>
                       <td className="py-2 font-semibold text-slate-800">{p.shares}</td>
+                      <td className="py-2 text-slate-500">{(p.listed_shares || 0).toLocaleString('en-IN')}</td>
                       <td className="py-2 font-semibold text-emerald-600">{p.roi_percent}%</td>
                       <td className="py-2"><RiskBadge risk={p.risk_level} /></td>
                     </tr>

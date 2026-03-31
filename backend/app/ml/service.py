@@ -3,7 +3,6 @@ from pathlib import Path
 
 import joblib
 import numpy as np
-import shap
 
 logger = logging.getLogger(__name__)
 
@@ -95,55 +94,6 @@ class MLService:
         idx = int(np.argmax(probabilities))
         labels = ["Low", "Medium", "High"]
         return {"risk_level": labels[idx], "probability_score": round(float(probabilities[idx]), 4)}
-
-    def explain_roi(self, payload: dict) -> dict:
-        self._ensure_loaded()
-
-        location_score = round(float(payload["demand_index"] * 100), 4)
-        rental_demand_index = round(float(payload["rental_yield"] * 7), 4)
-        infrastructure_growth = round(float(payload["market_trend"] * 90), 4)
-        vacancy_rate = round(float(max(0.0, 30 - payload["demand_index"] * 25)), 4)
-        market_appreciation_trend = round(float(payload["market_trend"] * 100), 4)
-
-        if self._fallback_mode:
-            contributions = {
-                "Location Score": round(location_score * 0.08, 4),
-                "Rental Demand Index": round(rental_demand_index * 0.06, 4),
-                "Infrastructure Growth": round(infrastructure_growth * 0.05, 4),
-                "Vacancy Rate": round(-vacancy_rate * 0.03, 4),
-                "Market Appreciation Trend": round(market_appreciation_trend * 0.07, 4),
-            }
-            pred = sum(contributions.values()) + 8.0
-            return {
-                "base_value": 8.0,
-                "prediction": round(float(pred), 4),
-                "feature_contributions": contributions,
-            }
-
-        x = self._to_vector(payload)
-        explainer = shap.TreeExplainer(self._roi_model)
-        shap_values = explainer.shap_values(x)
-
-        # Map model explanations to market-facing business features.
-        model_contrib = [float(shap_values[0][i]) for i in range(min(4, len(self._features)))]
-        contributions = {
-            "Location Score": round(model_contrib[2] if len(model_contrib) > 2 else location_score * 0.05, 4),
-            "Rental Demand Index": round(model_contrib[1] if len(model_contrib) > 1 else rental_demand_index * 0.04, 4),
-            "Infrastructure Growth": round(model_contrib[3] if len(model_contrib) > 3 else infrastructure_growth * 0.03, 4),
-            "Vacancy Rate": round(-(location_score * 0.01), 4),
-            "Market Appreciation Trend": round(model_contrib[3] if len(model_contrib) > 3 else market_appreciation_trend * 0.04, 4),
-        }
-
-        base = explainer.expected_value
-        if isinstance(base, np.ndarray):
-            base = float(base[0])
-        pred = float(self._roi_model.predict(x)[0])
-
-        return {
-            "base_value": round(float(base), 4),
-            "prediction": round(pred, 4),
-            "feature_contributions": contributions,
-        }
 
 
 ml_service = MLService()

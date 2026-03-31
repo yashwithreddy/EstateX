@@ -71,8 +71,13 @@ def approve_property_listing(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found")
 
     if approve:
-        # Force approval: also mark all associated documents as verified and set is_verified = True.
-        db.documents.update_many({"property_id": property_id}, {"$set": {"is_verified": True}})
+        docs = list(db.documents.find({"property_id": property_id}))
+        all_verified = len(docs) >= REQUIRED_DOC_COUNT and all(d.get("is_verified") for d in docs)
+        if not all_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="All required documents must be verified before approving a property",
+            )
         db.properties.update_one(
             {"_id": property_id},
             {"$set": {"is_verified": True, "listing_status": ListingStatus.APPROVED.value, "rejection_reason": None}},

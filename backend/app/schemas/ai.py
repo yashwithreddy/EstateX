@@ -20,13 +20,3 @@ class RiskRequest(ROIRequest):
 class RiskResponse(BaseModel):
     risk_level: str
     probability_score: float
-
-
-class ExplainRequest(ROIRequest):
-    pass
-
-
-class ExplainResponse(BaseModel):
-    base_value: float
-    prediction: float
-    feature_contributions: dict[str, float]

@@ -229,8 +229,6 @@ def run_smoke() -> None:
     assert roi.status_code == 200, roi.text
     risk = client.post("/api/v1/ai/risk", json=ai_payload)
     assert risk.status_code == 200, risk.text
-    explain = client.post("/api/v1/ai/explain", json=ai_payload)
-    assert explain.status_code == 200, explain.text
 
     # Dashboards
     investor_dash = client.get("/api/v1/dashboard/investor", headers=auth_header(investor1_token))

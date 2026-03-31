@@ -18,7 +18,7 @@ function App() {
       <Route path="/register" element={<RegisterPage />} />
 
       <Route element={<AppLayout />}>
-        <Route index element={<MarketplacePage />} />
+        <Route index element={<Navigate to="/login" replace />} />
         <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/properties/:id" element={<PropertyDetailsPage />} />
 

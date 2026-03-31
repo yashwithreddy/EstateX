@@ -30,6 +30,12 @@ function MarketplacePage() {
     fetchProperties();
   }, [fetchProperties]);
 
+  useEffect(() => {
+    const handlePortfolioUpdate = () => fetchProperties();
+    window.addEventListener('estatex:portfolio-updated', handlePortfolioUpdate);
+    return () => window.removeEventListener('estatex:portfolio-updated', handlePortfolioUpdate);
+  }, [fetchProperties]);
+
   const setFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
 
   const clearFilters = () =>

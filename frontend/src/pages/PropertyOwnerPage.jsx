@@ -13,7 +13,7 @@ function PropertyOwnerPage() {
   const [activeTab, setActiveTab] = useState('add');
   const [form, setForm] = useState({
     title: '', description: '', city: '', state: '', location: '', property_type: 'commercial', image_url: '',
-    property_price: '', total_shares: '10000', rental_yield: '7.5', demand_index: '0.7', market_trend: '0.6', ai_predicted_roi: '13', risk_level: 'Medium',
+    property_price: '', total_shares: '10000', rental_yield: '7.5', demand_index: '0.7', market_trend: '0.6', ai_predicted_roi: '13',
   });
   const [docs, setDocs] = useState({ sale_deed: null, encumbrance_certificate: null, property_tax_receipt: null, identity_proof: null });
   const [dashboard, setDashboard] = useState(null);
@@ -39,7 +39,7 @@ function PropertyOwnerPage() {
       Object.entries(docs).forEach(([k, v]) => { if (v) data.append(k, v); });
       await propertyApi.create(data);
       setSuccess('✓ Property submitted for admin verification. You will be notified once approved.');
-      setForm({ title: '', description: '', city: '', state: '', location: '', property_type: 'commercial', image_url: '', property_price: '', total_shares: '10000', rental_yield: '7.5', demand_index: '0.7', market_trend: '0.6', ai_predicted_roi: '13', risk_level: 'Medium' });
+      setForm({ title: '', description: '', city: '', state: '', location: '', property_type: 'commercial', image_url: '', property_price: '', total_shares: '10000', rental_yield: '7.5', demand_index: '0.7', market_trend: '0.6', ai_predicted_roi: '13' });
       setDocs({ sale_deed: null, encumbrance_certificate: null, property_tax_receipt: null, identity_proof: null });
       load();
       setActiveTab('listings');
@@ -60,6 +60,18 @@ function PropertyOwnerPage() {
         <h2 className="text-xl font-bold text-slate-900">Property Owner Dashboard</h2>
         <p className="text-sm text-slate-500 mt-0.5">List properties, upload verification documents, and track investor activity.</p>
       </div>
+
+      {dashboard && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Wallet Balance</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">{INR(dashboard.wallet_balance || 0)}</p>
+            </div>
+            <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Owner Wallet</div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2">
@@ -105,14 +117,6 @@ function PropertyOwnerPage() {
                   <option value="residential">Residential</option>
                   <option value="retail">Retail</option>
                   <option value="office">Office</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Risk Level</label>
-                <select className="w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-sky-400 focus:outline-none" value={form.risk_level} onChange={(e) => setForm({ ...form, risk_level: e.target.value })}>
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
                 </select>
               </div>
               <div className="md:col-span-2">

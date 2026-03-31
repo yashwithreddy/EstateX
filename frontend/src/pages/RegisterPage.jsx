@@ -14,6 +14,7 @@ function RegisterPage() {
   const [payload, setPayload] = useState({ email: '', full_name: '', password: '', role: 'investor', wallet_address: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const walletPattern = /^0x[a-fA-F0-9]{40}$/;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -21,10 +22,21 @@ function RegisterPage() {
       setError('Password must be at least 8 characters.');
       return;
     }
+    const trimmedWallet = payload.wallet_address.trim();
+    if (trimmedWallet && !walletPattern.test(trimmedWallet)) {
+      setError('Wallet address must be a valid 0x address (40 hex characters).');
+      return;
+    }
     try {
       setError('');
       setLoading(true);
-      const data = await register(payload);
+      const cleanPayload = {
+        ...payload,
+        email: payload.email.trim(),
+        full_name: payload.full_name.trim(),
+        wallet_address: trimmedWallet === '' ? undefined : trimmedWallet,
+      };
+      const data = await register(cleanPayload);
       const role = data.user?.role;
       navigate(ROLE_REDIRECT[role] || '/marketplace', { replace: true });
     } catch (err) {

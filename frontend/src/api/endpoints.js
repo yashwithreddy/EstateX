@@ -28,7 +28,6 @@ export const investmentApi = {
 export const aiApi = {
   roi: (payload) => api.post('/ai/roi', payload),
   risk: (payload) => api.post('/ai/risk', payload),
-  explain: (payload) => api.post('/ai/explain', payload),
 };
 
 export const dashboardApi = {
@@ -41,6 +40,7 @@ export const adminApi = {
   pendingProperties: () => api.get('/admin/properties/pending'),
   propertyDocuments: (propertyId) => api.get(`/admin/properties/${propertyId}/documents`),
   pendingDocuments: () => api.get('/admin/documents/pending'),
+  downloadDocument: (id) => api.get(`/admin/documents/${id}/download`, { responseType: 'blob' }),
   verifyDocument: (id, approve, rejectionReason = '') =>
     api.patch(`/admin/documents/${id}/verify`, { approve, rejection_reason: rejectionReason }),
   approveProperty: (id, approve, rejectionReason = '') =>

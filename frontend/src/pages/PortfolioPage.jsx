@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, useCallback } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { dashboardApi } from '../api/endpoints';
 import RiskBadge from '../components/RiskBadge';
 
@@ -8,12 +8,24 @@ const INR = (val) => '₹' + Number(val).toLocaleString('en-IN');
 function PortfolioPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const location = useLocation();
 
-  useEffect(() => {
+  const loadPortfolio = useCallback(() => {
+    setError('');
     dashboardApi.investor()
       .then((res) => setData(res.data))
       .catch((err) => setError(err.message));
   }, []);
+
+  useEffect(() => {
+    loadPortfolio();
+  }, [loadPortfolio, location.key]);
+
+  useEffect(() => {
+    const handleRefresh = () => loadPortfolio();
+    window.addEventListener('estatex:portfolio-updated', handleRefresh);
+    return () => window.removeEventListener('estatex:portfolio-updated', handleRefresh);
+  }, [loadPortfolio]);
 
   if (error) return (
     <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700">
@@ -23,6 +35,13 @@ function PortfolioPage() {
   if (!data) return <div className="flex items-center justify-center p-12 text-slate-400">Loading portfolio…</div>;
 
   const sortedPortfolio = [...data.portfolio].sort((a, b) => b.estimated_value - a.estimated_value);
+  const totalShares = Number.isFinite(data.total_shares)
+    ? data.total_shares
+    : data.portfolio.reduce((sum, p) => sum + (p.total_shares || p.shares || 0), 0);
+  const totalListedShares = Number.isFinite(data.total_listed_shares)
+    ? data.total_listed_shares
+    : data.portfolio.reduce((sum, p) => sum + (p.listed_shares || 0), 0);
+  const totalAvailableShares = Math.max(0, totalShares - totalListedShares);
   const totalAnnualROI = data.portfolio.reduce((sum, p) => sum + (p.estimated_value * p.roi_percent) / 100, 0);
   const totalAnnualRental = data.portfolio.reduce((sum, p) => sum + (p.shares * p.share_price * 0.07), 0);
 
@@ -67,6 +86,7 @@ function PortfolioPage() {
                   <th className="pb-3 pr-4">Property</th>
                   <th className="pb-3 pr-4">City</th>
                   <th className="pb-3 pr-4">Shares</th>
+                  <th className="pb-3 pr-4">Listed</th>
                   <th className="pb-3 pr-4">Value</th>
                   <th className="pb-3 pr-4">AI ROI</th>
                   <th className="pb-3 pr-4">Risk</th>
@@ -85,6 +105,7 @@ function PortfolioPage() {
                       </td>
                       <td className="py-3 pr-4 text-slate-500">{p.city}</td>
                       <td className="py-3 pr-4 font-semibold text-slate-800">{p.shares.toLocaleString('en-IN')}</td>
+                      <td className="py-3 pr-4 text-slate-600">{(p.listed_shares || 0).toLocaleString('en-IN')}</td>
                       <td className="py-3 pr-4 font-semibold text-slate-800">{INR(p.estimated_value)}</td>
                       <td className="py-3 pr-4 font-semibold text-emerald-600">{p.roi_percent}%</td>
                       <td className="py-3 pr-4"><RiskBadge risk={p.risk_level} /></td>
@@ -95,7 +116,10 @@ function PortfolioPage() {
               </tbody>
               <tfoot>
                 <tr className="bg-slate-50 text-sm font-semibold text-slate-700">
-                  <td colSpan={3} className="py-3 pl-2">Total</td>
+                  <td className="py-3 pl-2">Total</td>
+                  <td className="py-3">—</td>
+                  <td className="py-3">{totalAvailableShares.toLocaleString('en-IN')}</td>
+                  <td className="py-3">{totalListedShares.toLocaleString('en-IN')}</td>
                   <td className="py-3">{INR(data.total_investment_value)}</td>
                   <td className="py-3 text-emerald-600">—</td>
                   <td className="py-3">—</td>

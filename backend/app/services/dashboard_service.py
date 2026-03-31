@@ -7,20 +7,32 @@ def investor_dashboard(db: Database, user_id: int) -> dict:
     holdings = list(db.ownerships.find({"investor_id": user_id}))
 
     total_value = 0.0
+    total_available_value = 0.0
+    total_listed_value = 0.0
+    total_shares_all = 0
+    total_listed_shares = 0
     distribution = []
     portfolio = []
     for ownership in holdings:
         prop = db.properties.find_one({"_id": ownership["property_id"]})
         if not prop:
             continue
-        holding_value = float(prop["price_per_share"]) * ownership.get("shares", 0)
-        total_value += holding_value
+        total_shares = ownership.get("shares", 0)
+        reserved_shares = ownership.get("reserved_shares", 0)
+        net_shares = max(0, total_shares - reserved_shares)
+        price_per_share = float(prop["price_per_share"])
+        holding_value = price_per_share * net_shares
+        total_value += price_per_share * total_shares
+        total_available_value += holding_value
+        total_listed_value += price_per_share * reserved_shares
+        total_shares_all += total_shares
+        total_listed_shares += reserved_shares
         distribution.append(
             {
                 "property_id": prop["_id"],
                 "property": prop["title"],
-                "shares": ownership.get("shares", 0),
-                "value": round(holding_value, 2),
+                "shares": total_shares,
+                "value": round(price_per_share * total_shares, 2),
             }
         )
         portfolio.append(
@@ -29,11 +41,13 @@ def investor_dashboard(db: Database, user_id: int) -> dict:
                 "title": prop["title"],
                 "city": prop["city"],
                 "state": prop["state"],
-                "shares": ownership.get("shares", 0),
-                "share_price": float(prop["price_per_share"]),
+                "shares": net_shares,
+                "total_shares": total_shares,
+                "listed_shares": reserved_shares,
+                "share_price": price_per_share,
                 "estimated_value": round(holding_value, 2),
-                "roi_percent": prop["ai_predicted_roi"],
-                "risk_level": prop["risk_level"],
+                "roi_percent": prop.get("ai_predicted_roi", 0),
+                "risk_level": prop.get("risk_level"),
             }
         )
 
@@ -82,8 +96,8 @@ def investor_dashboard(db: Database, user_id: int) -> dict:
             "property_type": prop["property_type"],
             "price_per_share": float(prop["price_per_share"]),
             "available_shares": prop["available_shares"],
-            "roi_percent": prop["ai_predicted_roi"],
-            "risk_level": prop["risk_level"],
+            "roi_percent": prop.get("ai_predicted_roi", 0),
+            "risk_level": prop.get("risk_level"),
             "listing_status": prop["listing_status"],
             "is_verified": prop["is_verified"],
         }
@@ -93,6 +107,10 @@ def investor_dashboard(db: Database, user_id: int) -> dict:
     user = db.users.find_one({"_id": user_id}) or {}
     return {
         "total_investment_value": round(total_value, 2),
+        "total_available_value": round(total_available_value, 2),
+        "total_listed_value": round(total_listed_value, 2),
+        "total_shares": total_shares_all,
+        "total_listed_shares": total_listed_shares,
         "wallet_balance": float(user.get("wallet_balance", 0)),
         "ownership_distribution": distribution,
         "portfolio": portfolio,
@@ -136,7 +154,9 @@ def owner_dashboard(db: Database, owner_id: int) -> dict:
             for tx in txs
         ]
 
+    owner = db.users.find_one({"_id": owner_id}) or {}
     return {
+        "wallet_balance": float(owner.get("wallet_balance", 0)),
         "properties": [
             {
                 "id": p["_id"],

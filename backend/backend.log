@@ -1,0 +1,52 @@
+Traceback (most recent call last):
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/uvicorn/__main__.py", line 4, in <module>
+    uvicorn.main()
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/click/core.py", line 1161, in __call__
+    return self.main(*args, **kwargs)
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/click/core.py", line 1082, in main
+    rv = self.invoke(ctx)
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/click/core.py", line 1443, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/click/core.py", line 788, in invoke
+    return __callback(*args, **kwargs)
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/uvicorn/main.py", line 412, in main
+    run(
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/uvicorn/main.py", line 579, in run
+    server.run()
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/uvicorn/server.py", line 66, in run
+    return asyncio.run(self.serve(sockets=sockets))
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/uvicorn/server.py", line 70, in serve
+    await self._serve(sockets)
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/uvicorn/server.py", line 77, in _serve
+    config.load()
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/uvicorn/config.py", line 435, in load
+    self.loaded_app = import_from_string(self.app)
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1030, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1007, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 986, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 680, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/yashwithreddy/MiniProject/EstateX/backend/app/main.py", line 7, in <module>
+    from app.core.config import cors_origins_list, settings
+  File "/Users/yashwithreddy/MiniProject/EstateX/backend/app/core/config.py", line 38, in <module>
+    settings = Settings()
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/pydantic_settings/main.py", line 176, in __init__
+    super().__init__(
+  File "/Users/yashwithreddy/Library/Python/3.9/lib/python/site-packages/pydantic/main.py", line 250, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 1 validation error for Settings
+debug
+  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value='release', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/bool_parsing

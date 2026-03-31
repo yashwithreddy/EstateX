@@ -1,14 +1,19 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { authApi } from '../api/endpoints';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(localStorage.getItem('estatex_token'));
-  const [user, setUser] = useState(() => {
-    const raw = localStorage.getItem('estatex_user');
-    return raw ? JSON.parse(raw) : null;
-  });
+  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Always start from the login screen on app launch.
+    localStorage.removeItem('estatex_token');
+    localStorage.removeItem('estatex_user');
+    setToken(null);
+    setUser(null);
+  }, []);
 
   const login = async (payload) => {
     const { data } = await authApi.login(payload);
