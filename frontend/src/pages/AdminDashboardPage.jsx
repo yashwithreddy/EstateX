@@ -8,6 +8,7 @@ function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState('stats');
   const [stats, setStats] = useState(null);
   const [props, setProps] = useState([]);
+  const [allProps, setAllProps] = useState([]);
   const [users, setUsers] = useState([]);
   const [error, setError] = useState('');
   const [reason, setReason] = useState('');
@@ -19,13 +20,15 @@ function AdminDashboardPage() {
   const load = async () => {
     try {
       setError('');
-      const [statsRes, propsRes, usersRes] = await Promise.all([
+      const [statsRes, propsRes, allPropsRes, usersRes] = await Promise.all([
         dashboardApi.admin(),
         adminApi.pendingProperties(),
+        adminApi.listProperties(),
         adminApi.listUsers(),
       ]);
       setStats(statsRes.data);
       setProps(propsRes.data);
+      setAllProps(allPropsRes.data || []);
       setUsers(usersRes.data);
     } catch (err) {
       setError(err.message || 'Failed to load admin data');
@@ -87,6 +90,21 @@ function AdminDashboardPage() {
     } catch (e) { setActionMsg(`✗ ${e.message}`); }
   };
 
+  const deleteProperty = async (id, title) => {
+    setActionMsg('');
+    const confirmed = window.confirm(`Delete property "${title}"? This will remove its documents and listings.`);
+    if (!confirmed) return;
+    try {
+      await adminApi.deleteProperty(id);
+      setActionMsg('✓ Property deleted.');
+      setAllProps((prev) => prev.filter((p) => p.property_id !== id));
+      setProps((prev) => prev.filter((p) => p.property_id !== id));
+      load();
+    } catch (e) {
+      setActionMsg(`✗ ${e.message}`);
+    }
+  };
+
   const openDocument = async (doc) => {
     setActionMsg('');
     // Open a blank tab synchronously to avoid popup blockers, then fill it once the blob is ready.
@@ -143,6 +161,7 @@ function AdminDashboardPage() {
         <button className={activeTab === 'properties' ? ACTIVE : INACTIVE} onClick={() => setActiveTab('properties')}>
           🏢 Pending Properties {props.length > 0 && <span className="ml-1 rounded-full bg-rose-500 px-1.5 text-xs text-white">{props.length}</span>}
         </button>
+        <button className={activeTab === 'listed' ? ACTIVE : INACTIVE} onClick={() => setActiveTab('listed')}>✅ Listed Properties</button>
         <button className={activeTab === 'users' ? ACTIVE : INACTIVE} onClick={() => setActiveTab('users')}>👥 Users ({users.length})</button>
       </div>
 
@@ -293,6 +312,53 @@ function AdminDashboardPage() {
                   );
                 })()
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Listed Properties tab */}
+      {activeTab === 'listed' && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="mb-4 font-semibold text-slate-900">Listed Properties</h3>
+          {allProps.filter((p) => p.listing_status === 'approved').length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-10 text-slate-400">
+              <span className="text-4xl">🏘️</span>
+              <p className="text-sm">No listed properties yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {allProps
+                .filter((p) => p.listing_status === 'approved')
+                .map((p) => (
+                  <div key={p.property_id} className="rounded-xl border border-slate-100 p-4 hover:bg-slate-50">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="h-14 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                          {p.image_url ? (
+                            <img src={p.image_url} alt={p.title} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-xs text-slate-400">No Image</div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900">{p.title}</p>
+                          <p className="text-xs text-slate-500">{p.city}, {p.state} · Owner #{p.owner_id}</p>
+                          <p className="text-xs text-slate-400">Shares: {p.available_shares}/{p.total_shares}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Listed</span>
+                        <button
+                          onClick={() => deleteProperty(p.property_id, p.title)}
+                          className="rounded-lg bg-rose-600 px-3 py-1 text-xs font-semibold text-white hover:bg-rose-500"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
             </div>
           )}
         </div>

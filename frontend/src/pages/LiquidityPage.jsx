@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { investmentApi, dashboardApi } from '../api/endpoints';
 import { useAuth } from '../context/AuthContext';
-
 const INR = (val) => '₹' + Number(val).toLocaleString('en-IN');
 
 function LiquidityPage() {
@@ -10,12 +9,14 @@ function LiquidityPage() {
   const [listings, setListings] = useState([]);
   const [portfolio, setPortfolio] = useState([]);
   const [createForm, setCreateForm] = useState({ property_id: '', shares_for_sale: '', price_per_share: '' });
-
-  // Exit simulator state
-  const [simForm, setSimForm] = useState({ property_id: '', shares_to_exit: '' });
+  const [simForm, setSimForm] = useState({ property_id: '', shares_to_exit: '', exit_type: 'normal' });
   const [simResult, setSimResult] = useState(null);
   const [simLoading, setSimLoading] = useState(false);
   const [simError, setSimError] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsRead, setTermsRead] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [termsType, setTermsType] = useState('normal');
 
   const [listingMsg, setListingMsg] = useState('');
   const [tradeMsg, setTradeMsg] = useState('');
@@ -47,6 +48,10 @@ function LiquidityPage() {
   const runSimulation = async (e) => {
     e.preventDefault();
     if (!simForm.property_id || !simForm.shares_to_exit) return;
+    if (!termsRead || !termsAccepted) {
+      setSimError('Please read and accept the exit terms to continue.');
+      return;
+    }
     setSimLoading(true);
     setSimError('');
     setSimResult(null);
@@ -157,6 +162,22 @@ function LiquidityPage() {
             </p>
             <form onSubmit={runSimulation} className="flex flex-wrap items-end gap-3">
               <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Exit Type</label>
+                <select
+                  className="rounded-xl border border-slate-200 p-2.5 text-sm focus:border-sky-400 focus:outline-none min-w-44"
+                  value={simForm.exit_type}
+                  onChange={(e) => {
+                    setSimForm({ ...simForm, exit_type: e.target.value });
+                    setTermsAccepted(false);
+                    setTermsRead(false);
+                  }}
+                  required
+                >
+                  <option value="normal">Normal Exit (Secondary Market)</option>
+                  <option value="emergency">Emergency Exit</option>
+                </select>
+              </div>
+              <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Property</label>
                 <select
                   className="rounded-xl border border-slate-200 p-2.5 text-sm focus:border-sky-400 focus:outline-none min-w-52"
@@ -192,6 +213,36 @@ function LiquidityPage() {
                 {simLoading ? 'Calculating…' : 'Simulate Exit'}
               </button>
             </form>
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold text-slate-800">Exit Terms & Conditions</p>
+                <button
+                  type="button"
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                  onClick={() => {
+                    setTermsType(simForm.exit_type);
+                    setTermsOpen(true);
+                  }}
+                >
+                  View {simForm.exit_type === 'emergency' ? 'Emergency' : 'Normal'} Exit Document
+                </button>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-slate-700">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  disabled={!termsRead}
+                />
+                I have read and agree to the exit terms and conditions.
+              </label>
+              {!termsRead && (
+                <p className="text-xs text-amber-600">
+                  Please open and read the exit document before accepting.
+                </p>
+              )}
+            </div>
             {simError && <p className="mt-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-600">{simError}</p>}
           </div>
 
@@ -232,6 +283,17 @@ function LiquidityPage() {
                 </span>
                 <span className="ml-4">ROI {simResult.roi_percent}% · Rental Yield {simResult.rental_yield_percent}%</span>
               </div>
+
+              {simForm.exit_type === 'emergency' && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-slate-700">
+                  <p className="font-semibold text-slate-800">Emergency Buyback Split</p>
+                  <p>
+                    Investor payout (70%): <span className="font-bold text-slate-900">{INR(simResult.net_proceeds_after_tax * 0.7)}</span>
+                    <span className="mx-2 text-slate-400">|</span>
+                    Company liquidity fee (30%): <span className="font-bold text-slate-900">{INR(simResult.net_proceeds_after_tax * 0.3)}</span>
+                  </p>
+                </div>
+              )}
 
               <p className="text-xs text-slate-400">
                 ⚠ Disclaimer: LTCG tax estimate uses 20% flat rate. Actual tax liability depends on holding period, indexation, and applicable slabs. Consult a CA for precise figures.
@@ -323,6 +385,87 @@ function LiquidityPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {termsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <h4 className="text-base font-semibold text-slate-900">
+                {termsType === 'emergency' ? 'Emergency Exit Terms' : 'Normal Exit Terms'}
+              </h4>
+              <button
+                type="button"
+                className="rounded-lg px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
+                onClick={() => setTermsOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="max-h-[70vh] space-y-3 overflow-y-auto px-5 py-4 text-sm text-slate-600">
+              {termsType === 'emergency' ? (
+                <div className="space-y-2">
+                  <p className="font-semibold text-slate-800">Emergency Exit</p>
+                  <p>
+                    Emergency exit is an urgent liquidity option. EstateX may provide an immediate buyback payout equal
+                    to 70% of the simulated net proceeds after tax. EstateX retains 30% as a liquidity fee and takes over
+                    the exited shares.
+                  </p>
+                  <p>
+                    After the buyback, EstateX lists the shares on the secondary market. The investor does not receive
+                    additional proceeds from the subsequent resale.
+                  </p>
+                  <p>
+                    Emergency exit requests are irreversible once confirmed. Processing time may vary based on liquidity
+                    and internal approvals.
+                  </p>
+                  <p>
+                    This option is intended for urgent circumstances and may reduce total proceeds compared to a normal
+                    exit. Tax estimates are indicative only.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="font-semibold text-slate-800">Normal Exit (Secondary Market)</p>
+                  <p>
+                    Normal exit places your shares on the secondary market. You are paid only after another investor buys
+                    your shares at the listed price.
+                  </p>
+                  <p>
+                    Pricing, timing, and sale completion depend on market demand. Shares may remain listed until a buyer
+                    accepts the price.
+                  </p>
+                  <p>
+                    Once sold, proceeds (after applicable taxes) are credited to your wallet and shown in your portfolio.
+                  </p>
+                  <p>
+                    Listing fees or platform charges, if any, will be disclosed at the time of sale. Tax figures shown in
+                    the simulator are estimates.
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-4">
+              <button
+                type="button"
+                className="rounded-lg border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                onClick={() => setTermsOpen(false)}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="rounded-lg bg-sky-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-sky-500"
+                onClick={() => {
+                  setTermsRead(true);
+                  setTermsOpen(false);
+                }}
+              >
+                I Have Read
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

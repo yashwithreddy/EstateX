@@ -77,6 +77,22 @@ function InvestorDashboardPage() {
   const totalRentalEst = dashboard.portfolio.reduce(
     (sum, p) => sum + (p.estimated_value * p.roi_percent / 100), 0
   );
+  const totalShares = dashboard.portfolio.reduce((sum, p) => sum + (p.shares || 0), 0);
+  const listedShares = dashboard.total_listed_shares || 0;
+  const listedPct = totalShares ? Math.round((listedShares / totalShares) * 100) : 0;
+  const avgRoi = dashboard.portfolio.length
+    ? dashboard.portfolio.reduce((sum, p) => sum + (p.roi_percent || 0), 0) / dashboard.portfolio.length
+    : 0;
+  const riskMix = dashboard.portfolio.reduce(
+    (acc, p) => {
+      const key = (p.risk_level || 'medium').toLowerCase();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    },
+    { low: 0, medium: 0, high: 0 }
+  );
+  const riskTotal = riskMix.low + riskMix.medium + riskMix.high;
+  const roiBar = Math.min(100, Math.round((avgRoi / 20) * 100));
 
   return (
     <section className="space-y-5">
@@ -119,6 +135,42 @@ function InvestorDashboardPage() {
           sub="Buy / sell records"
           color="bg-amber-50 border-amber-200"
         />
+      </div>
+
+      {/* Minimal visuals */}
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-slate-500">Shares Listed</p>
+          <div className="mt-2 flex items-end justify-between">
+            <p className="text-2xl font-bold text-slate-900">{listedPct}%</p>
+            <p className="text-xs text-slate-400">{listedShares.toLocaleString('en-IN')} / {totalShares.toLocaleString('en-IN')}</p>
+          </div>
+          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full bg-sky-500" style={{ width: `${listedPct}%` }} />
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-slate-500">Average ROI</p>
+          <div className="mt-2 flex items-end justify-between">
+            <p className="text-2xl font-bold text-slate-900">{avgRoi.toFixed(1)}%</p>
+            <p className="text-xs text-slate-400">Target 20%</p>
+          </div>
+          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${roiBar}%` }} />
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-slate-500">Risk Mix</p>
+          <div className="mt-2 flex items-end justify-between">
+            <p className="text-2xl font-bold text-slate-900">{riskTotal}</p>
+            <p className="text-xs text-slate-400">Low {riskMix.low} · Med {riskMix.medium} · High {riskMix.high}</p>
+          </div>
+          <div className="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full bg-emerald-500" style={{ width: `${riskTotal ? (riskMix.low / riskTotal) * 100 : 0}%` }} />
+            <div className="h-full bg-amber-500" style={{ width: `${riskTotal ? (riskMix.medium / riskTotal) * 100 : 0}%` }} />
+            <div className="h-full bg-rose-500" style={{ width: `${riskTotal ? (riskMix.high / riskTotal) * 100 : 0}%` }} />
+          </div>
+        </div>
       </div>
 
       {/* Wallet */}

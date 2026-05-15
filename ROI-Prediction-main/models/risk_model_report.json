@@ -1,0 +1,84 @@
+{
+  "accuracy": 1.0,
+  "train_accuracy": 1.0,
+  "test_accuracy": 1.0,
+  "precision_weighted": 1.0,
+  "recall_weighted": 1.0,
+  "f1_weighted": 1.0,
+  "confusion_matrix": [
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1077
+    ]
+  ],
+  "classification_report": "              precision    recall  f1-score   support\n\n         Low       0.00      0.00      0.00         0\n      Medium       0.00      0.00      0.00         0\n        High       1.00      1.00      1.00      1077\n\n    accuracy                           1.00      1077\n   macro avg       0.33      0.33      0.33      1077\nweighted avg       1.00      1.00      1.00      1077\n",
+  "feature_importance": [
+    {
+      "feature": "location",
+      "importance": 0.0
+    },
+    {
+      "feature": "price",
+      "importance": 0.0
+    },
+    {
+      "feature": "area",
+      "importance": 0.0
+    },
+    {
+      "feature": "bhk",
+      "importance": 0.0
+    },
+    {
+      "feature": "bath",
+      "importance": 0.0
+    },
+    {
+      "feature": "floors",
+      "importance": 0.0
+    },
+    {
+      "feature": "furnishing",
+      "importance": 0.0
+    },
+    {
+      "feature": "property_age",
+      "importance": 0.0
+    },
+    {
+      "feature": "monthly_rent",
+      "importance": 0.0
+    },
+    {
+      "feature": "maintenance_cost",
+      "importance": 0.0
+    },
+    {
+      "feature": "annual_appreciation_rate",
+      "importance": 0.0
+    },
+    {
+      "feature": "rental_growth_rate",
+      "importance": 0.0
+    },
+    {
+      "feature": "investment_years",
+      "importance": 0.0
+    },
+    {
+      "feature": "ROI",
+      "importance": 0.0
+    }
+  ]
+}

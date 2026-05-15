@@ -3,6 +3,7 @@ from pathlib import Path
 
 import joblib
 import numpy as np
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -75,14 +76,61 @@ class MLService:
         return {"predicted_roi_percent": round(prediction, 4), "confidence_interval": interval}
 
     def _fallback_risk(self, payload: dict) -> dict:
-        score = payload["demand_index"] * 0.45 + payload["market_trend"] * 0.35 + (payload["rental_yield"] / 12.0) * 0.2
-        if score >= 0.68:
-            level, prob = "Low", min(0.98, 0.6 + score / 3)
-        elif score >= 0.48:
-            level, prob = "Medium", 0.55
-        else:
-            level, prob = "High", min(0.95, 0.6 + (0.5 - score))
+        # Normalize price into 0-1 range using a log scale to avoid extreme jumps.
+        price = max(1.0, float(payload.get("property_price", 1.0)))
+        price_factor = (math.log10(price) - 6.0) / 2.0
+        price_factor = min(1.0, max(0.0, price_factor))
+
+        # Combine inputs for a wider spread across properties.
+        score = (
+            payload["demand_index"] * 0.35
+            + payload["market_trend"] * 0.35
+            + (payload["rental_yield"] / 12.0) * 0.15
+            + (1.0 - price_factor) * 0.15
+        )
+        score = min(1.0, max(0.0, score))
+
+        # Map score into a 10-80 percent band for visible variation.
+        percent = 10.0 + score * 70.0
+        prob = max(0.10, min(0.80, percent / 100.0))
+
+        level = self._risk_level_from_score(prob)
         return {"risk_level": level, "probability_score": round(float(prob), 4)}
+
+    @staticmethod
+    def _risk_level_from_score(probability: float) -> str:
+        percent = probability * 100.0
+        if percent >= 50.0:
+            return "High"
+        if percent >= 26.0:
+            return "Medium"
+        return "Low"
+
+    def _fallback_rental_yield(self, payload: dict) -> dict:
+        base = 4.0
+        demand = float(payload.get("demand_index", 0.0))
+        trend = float(payload.get("market_trend", 0.0))
+        price = max(1.0, float(payload.get("property_price", 1.0)))
+        price_factor = (math.log10(price) - 6.0) / 2.0
+        price_factor = min(1.0, max(0.0, price_factor))
+        yield_hint = float(payload.get("rental_yield", 0.0))
+        hint_factor = min(1.0, max(0.0, yield_hint / 12.0)) - 0.5
+
+        offset = (
+            (demand - 0.5) * 0.9
+            + (trend - 0.5) * 0.7
+            + (0.5 - price_factor) * 0.6
+            + hint_factor * 0.4
+        )
+        predicted = base + offset
+        predicted = max(3.0, min(5.0, predicted))
+        spread = max(0.2, abs(predicted) * 0.08)
+        lower = max(3.0, predicted - spread)
+        upper = min(5.0, predicted + spread)
+        return {
+            "predicted_rental_yield_percent": round(float(predicted), 4),
+            "confidence_interval": [round(float(lower), 4), round(float(upper), 4)],
+        }
 
     def predict_risk(self, payload: dict) -> dict:
         self._ensure_loaded()
@@ -91,9 +139,14 @@ class MLService:
 
         x = self._to_vector(payload)
         probabilities = self._risk_model.predict_proba(x)[0]
-        idx = int(np.argmax(probabilities))
-        labels = ["Low", "Medium", "High"]
-        return {"risk_level": labels[idx], "probability_score": round(float(probabilities[idx]), 4)}
+        max_prob = float(np.max(probabilities))
+        level = self._risk_level_from_score(max_prob)
+        return {"risk_level": level, "probability_score": round(max_prob, 4)}
+
+    def predict_rental_yield(self, payload: dict) -> dict:
+        self._ensure_loaded()
+        # No dedicated rental-yield model yet; use deterministic fallback for now.
+        return self._fallback_rental_yield(payload)
 
 
 ml_service = MLService()

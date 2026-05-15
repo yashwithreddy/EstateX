@@ -1,0 +1,800 @@
+{
+  "price_growth_rate": 0.059064,
+  "rent_growth_rate": 0.091396,
+  "forecast_years": 5,
+  "city_rates": {
+    "Bangalore": {
+      "price_growth_rate": 0.089064,
+      "rent_growth_rate": 0.15
+    },
+    "Chennai": {
+      "price_growth_rate": 0.089064,
+      "rent_growth_rate": 0.15
+    },
+    "Delhi": {
+      "price_growth_rate": 0.089064,
+      "rent_growth_rate": 0.15
+    },
+    "Hyderabad": {
+      "price_growth_rate": 0.089064,
+      "rent_growth_rate": 0.091396
+    },
+    "Kolkata": {
+      "price_growth_rate": 0.089064,
+      "rent_growth_rate": 0.15
+    },
+    "Mumbai": {
+      "price_growth_rate": 0.089064,
+      "rent_growth_rate": 0.15
+    },
+    "Thane": {
+      "price_growth_rate": 0.089064,
+      "rent_growth_rate": 0.089064
+    }
+  },
+  "location_rates": {
+    "Adibatla": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Agripada": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Akurli Nagar": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Alwal": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Amboli": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Ameenpur": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Aminpur": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Anand Nagar Thane West": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Andheri East": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Andheri West": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Appa Junction Peerancheru": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Attapur": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Bachupally": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Balkum Naka": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Balkum village": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Bandlaguda Jagir": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Bandra West, Mumbai": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Banjara Hills": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Beeramguda": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Bhayandarpada": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Bhuvanagiri": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Bolarum": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Bolinj": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Chakala": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Chandanagar": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Chembur East": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Chembur West": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "D.N. Nagar": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Dadar East": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Dadar West": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Dahisar East": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Dahisar West": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Dhanukar Wadi": {
+      "price_growth_rate": 0.080929,
+      "rent_growth_rate": 0.080929
+    },
+    "Dhokali": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Dombivli East": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Dombivli West": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Electronic City, Bangalore": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Gachibowli": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Gachibowli, Hyderabad": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Gajularamaram": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Gandipet": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Ghatkesar": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Gokuldham": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Goregaon East": {
+      "price_growth_rate": 0.069793,
+      "rent_growth_rate": 0.069793
+    },
+    "Grant Road": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Hafeezpet": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Hiranandani Estate": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Hitech City": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Ibrahimpatnam": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Jogeshwari East": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Jogeshwari Vikhroli Link Road": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Jogeshwari West": {
+      "price_growth_rate": 0.077303,
+      "rent_growth_rate": 0.077303
+    },
+    "Jubilee Hills": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Kadthal": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Kalina": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Kalyan East": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Kalyan West": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Kandarpada": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Kandivali East": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Kandivali West": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Kandukur": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Khar West": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Kokapet": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Kollur": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Kollur Road": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Kolshet": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Kolshet Road": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Kompally": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Kondapur": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Kopri": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Kukatpally": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "LB Nagar": {
+      "price_growth_rate": 0.108229,
+      "rent_growth_rate": 0.108229
+    },
+    "Lokhandwala Complex": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Lokhandwala Twp": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Lower Parel West": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Madhapur": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Madipakkam, Chennai": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Mahalaxmi Race Course": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Mahavir Nagar": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Maheshwaram": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Mahim West": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Majiwada": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Malad East": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Mallampet": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Mallapur": {
+      "price_growth_rate": 0.071908,
+      "rent_growth_rate": 0.071908
+    },
+    "Manikonda": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Manpada": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Mansanpally": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Marine Lines": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Marol": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Matunga East": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Matunga West": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Medchal": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Meerkhanpet": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Mira Road East": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Mirkhanpet": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Miyapur": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Miyapur, NH 9, Hyderabad": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Mumbai Central": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Nacharam": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Nagole": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Naigaon East": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Nalasopara East": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Nalasopara West": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Nallagandla Gachibowli": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Nallakunta": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Nanakramguda": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Narsingi": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Naupada": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Nizampet": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Oshiwara": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Owale": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Panch Pakhdi": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Patancheru": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Patlipada": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Peerzadiguda": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Pokharan Road Number 2": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Prabhadevi": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Pragathi Nagar Kukatpally": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Puppalaguda": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Rajendra Nagar": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Sadashivpet": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Sainikpuri": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Sanath Nagar": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Santacruz East": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Santacruz West": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Serilingampally": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Shadnagar": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Sion East": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Sion West": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Srisailam Highway": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Teen Hath Naka": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Tellapur": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Thakur Complex": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Thakur Village, Kandivali East": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Thane East": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Thane West": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Tukkuguda": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Vartak Nagar": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Vasai East": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Vasai West": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Veera Desai Road": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Velachery, Chennai": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Vile Parle East": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Vile Parle West": {
+      "price_growth_rate": 0.109064,
+      "rent_growth_rate": 0.109064
+    },
+    "Virar East": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Virar West": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Waghbil": {
+      "price_growth_rate": 0.097946,
+      "rent_growth_rate": 0.097946
+    },
+    "Yacharam": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    },
+    "Yadagirigutta": {
+      "price_growth_rate": 0.069064,
+      "rent_growth_rate": 0.069064
+    }
+  },
+  "property_type_adj": {
+    "apartment": {
+      "price_growth_delta": 0.03,
+      "rent_growth_delta": 0.0
+    },
+    "builder floor apartment": {
+      "price_growth_delta": 0.02619,
+      "rent_growth_delta": 0.0
+    },
+    "house": {
+      "price_growth_delta": -0.02,
+      "rent_growth_delta": 0.0
+    },
+    "plot": {
+      "price_growth_delta": -0.019778,
+      "rent_growth_delta": 0.0
+    },
+    "residential house": {
+      "price_growth_delta": 0.03,
+      "rent_growth_delta": 0.0
+    },
+    "villa": {
+      "price_growth_delta": 0.02435,
+      "rent_growth_delta": 0.0
+    }
+  },
+  "furnishing_rent_adj": {
+    "furnished": 0.0,
+    "semi-furnished": 0.0,
+    "unfurnished": 0.0
+  },
+  "bhk_adj": {
+    "1": {
+      "price_growth_delta": 0.02,
+      "rent_growth_delta": 0.0
+    },
+    "2": {
+      "price_growth_delta": 0.01068,
+      "rent_growth_delta": 0.0
+    },
+    "3": {
+      "price_growth_delta": -0.015,
+      "rent_growth_delta": 0.0
+    },
+    "4": {
+      "price_growth_delta": -0.015,
+      "rent_growth_delta": 0.0
+    },
+    "5": {
+      "price_growth_delta": -0.015,
+      "rent_growth_delta": 0.0
+    },
+    "6": {
+      "price_growth_delta": -0.015,
+      "rent_growth_delta": 0.0
+    }
+  },
+  "area_adj": {
+    "<=800": {
+      "price_growth_delta": 0.02,
+      "rent_growth_delta": 0.0
+    },
+    "801-1200": {
+      "price_growth_delta": 0.008754,
+      "rent_growth_delta": 0.0
+    },
+    "1201-1800": {
+      "price_growth_delta": -0.015,
+      "rent_growth_delta": 0.0
+    },
+    "1801-3000": {
+      "price_growth_delta": -0.015,
+      "rent_growth_delta": 0.0
+    },
+    ">3000": {
+      "price_growth_delta": -0.015,
+      "rent_growth_delta": 0.0
+    }
+  },
+  "floor_adj": {
+    "0": {
+      "price_growth_delta": 0.007691,
+      "rent_growth_delta": 0.0
+    },
+    "1-3": {
+      "price_growth_delta": -0.015,
+      "rent_growth_delta": 0.0
+    },
+    "4-7": {
+      "price_growth_delta": 0.02,
+      "rent_growth_delta": 0.0
+    },
+    "8-15": {
+      "price_growth_delta": 0.02,
+      "rent_growth_delta": 0.0
+    },
+    ">15": {
+      "price_growth_delta": 0.02,
+      "rent_growth_delta": 0.0
+    }
+  },
+  "age_adj": {
+    "0-2": {
+      "price_growth_delta": 0.02,
+      "rent_growth_delta": 0.0
+    },
+    "3-5": {
+      "price_growth_delta": 0.02,
+      "rent_growth_delta": 0.0
+    },
+    "11-20": {
+      "price_growth_delta": -0.015,
+      "rent_growth_delta": 0.0
+    },
+    ">20": {
+      "price_growth_delta": -0.015,
+      "rent_growth_delta": 0.0
+    }
+  },
+  "price_band_adj": {
+    "<=30L": {
+      "price_growth_delta": -0.015,
+      "rent_growth_delta": 0.0
+    },
+    "30L-60L": {
+      "price_growth_delta": 0.007385,
+      "rent_growth_delta": 0.0
+    },
+    "60L-1Cr": {
+      "price_growth_delta": 0.018966,
+      "rent_growth_delta": 0.0
+    },
+    "1Cr-2Cr": {
+      "price_growth_delta": 0.02,
+      "rent_growth_delta": 0.0
+    },
+    ">2Cr": {
+      "price_growth_delta": 0.02,
+      "rent_growth_delta": 0.0
+    }
+  },
+  "rent_band_adj": {
+    "<=15k": {
+      "price_growth_delta": -0.015,
+      "rent_growth_delta": 0.0
+    },
+    "15k-30k": {
+      "price_growth_delta": 0.02,
+      "rent_growth_delta": 0.0
+    },
+    "30k-60k": {
+      "price_growth_delta": 0.02,
+      "rent_growth_delta": 0.0
+    },
+    ">60k": {
+      "price_growth_delta": 0.02,
+      "rent_growth_delta": 0.0
+    }
+  },
+  "price_model_name": "RandomForest",
+  "price_r2": 0.7507,
+  "rent_model_name": "RandomForest",
+  "rent_r2": 0.5077
+}

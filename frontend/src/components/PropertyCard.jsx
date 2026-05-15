@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { aiApi, investmentApi } from '../api/endpoints';
 import RiskBadge from './RiskBadge';
 import { useAuth } from '../context/AuthContext';
@@ -14,9 +14,11 @@ const TYPE_COLOR = {
 
 function PropertyCard({ property, canInvest }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [shares, setShares] = useState(1);
   const [roi, setRoi] = useState(null);
   const [risk, setRisk] = useState(null);
+  const [rentalYield, setRentalYield] = useState(null);
   const [loading, setLoading] = useState(false);
   const [investing, setInvesting] = useState(false);
   const [message, setMessage] = useState('');
@@ -34,14 +36,36 @@ function PropertyCard({ property, canInvest }) {
         demand_index: property.demand_index,
         market_trend: property.market_trend,
       };
-      const [roiRes, riskRes] = await Promise.all([aiApi.roi(params), aiApi.risk(params)]);
-      setRoi(roiRes.data);
-      setRisk(riskRes.data);
+      const [roiRes, riskRes, rentalRes] = await Promise.all([
+        aiApi.roi(params),
+        aiApi.risk(params),
+        aiApi.rentalYield(params),
+      ]);
+      const nextRoi = roiRes.data;
+      const nextRisk = riskRes.data;
+      const nextRental = rentalRes.data;
+      setRoi(nextRoi);
+      setRisk(nextRisk);
+      setRentalYield(nextRental);
+      const payload = {
+        propertyId: property.id,
+        title: property.title,
+        roi: nextRoi,
+        risk: nextRisk,
+        rentalYield: nextRental,
+        updatedAt: Date.now(),
+      };
+      sessionStorage.setItem('estatex.aiSignals', JSON.stringify(payload));
     } catch (e) {
       console.error('AI signals failed', e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAiSignals = async () => {
+    await fetchSignals();
+    navigate('/ai-signals');
   };
 
   const invest = async () => {
@@ -78,7 +102,7 @@ function PropertyCard({ property, canInvest }) {
           <span className="rounded-full bg-white/90 px-2 py-0.5 text-xs font-semibold text-slate-800">
             {property.city}, Hyderabad
           </span>
-          <RiskBadge risk={property.risk_level} />
+          <RiskBadge risk={risk?.risk_level || property.risk_level} />
         </div>
       </div>
 
@@ -103,14 +127,6 @@ function PropertyCard({ property, canInvest }) {
             <p className="text-slate-500">Share Price</p>
             <p className="font-bold text-slate-800">{INR(property.price_per_share)}</p>
           </div>
-          <div>
-            <p className="text-slate-500">AI ROI</p>
-            <p className="font-bold text-emerald-600">{property.ai_predicted_roi}%</p>
-          </div>
-          <div>
-            <p className="text-slate-500">Rental Yield</p>
-            <p className="font-bold text-sky-600">{property.rental_yield}%</p>
-          </div>
         </div>
 
         {/* Funding progress */}
@@ -125,10 +141,23 @@ function PropertyCard({ property, canInvest }) {
         </div>
 
         {/* AI signals */}
-        {(roi || risk) && (
-          <div className="mb-3 flex gap-2 rounded-xl bg-sky-50 border border-sky-100 p-2 text-xs">
-            {roi && <span className="text-slate-600">Predicted ROI: <strong className="text-emerald-600">{roi.predicted_roi_percent}%</strong></span>}
-            {risk && <span className="text-slate-600 ml-auto">Risk: <strong>{risk.risk_level}</strong> ({Math.round(risk.probability_score * 100)}%)</span>}
+        {(roi || risk || rentalYield) && (
+          <div className="mb-3 flex flex-wrap gap-2 rounded-xl bg-sky-50 border border-sky-100 p-2 text-xs">
+            {roi && (
+              <span className="text-slate-600">
+                Predicted ROI: <strong className="text-emerald-600">{roi.predicted_roi_percent}%</strong>
+              </span>
+            )}
+            {rentalYield && (
+              <span className="text-slate-600">
+                Predicted Rental Yield: <strong className="text-sky-700">{rentalYield.predicted_rental_yield_percent}%</strong>
+              </span>
+            )}
+            {risk && (
+              <span className="text-slate-600 ml-auto">
+                Risk: <strong>{risk.risk_level}</strong> ({Math.round(risk.probability_score * 100)}%)
+              </span>
+            )}
           </div>
         )}
 
@@ -147,9 +176,9 @@ function PropertyCard({ property, canInvest }) {
             View Details
           </Link>
           <button
-            onClick={fetchSignals}
+            onClick={handleAiSignals}
             disabled={loading}
-            className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-60"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
           >
             {loading ? '…' : 'AI Signals'}
           </button>

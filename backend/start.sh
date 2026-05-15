@@ -1,4 +1,4 @@
 #!/bin/bash
-cd /Users/yashwithreddy/MiniProject/EstateX/backend
+cd "$(dirname "$0")"
 export DEBUG=true
-exec python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+exec .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000

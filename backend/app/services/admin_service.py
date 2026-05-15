@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from pathlib import Path
 from pymongo.database import Database
 from typing import Optional
 
@@ -90,3 +91,40 @@ def approve_property_listing(
         )
 
     return serialize_doc(db.properties.find_one({"_id": property_id}))
+
+
+def delete_property_listing(db: Database, property_id: int) -> dict:
+    prop = db.properties.find_one({"_id": property_id})
+    if not prop:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found")
+
+    docs = list(db.documents.find({"property_id": property_id}))
+    deleted_files = 0
+    for doc in docs:
+        file_path = doc.get("file_path")
+        if file_path:
+            try:
+                path = Path(file_path)
+                if path.exists():
+                    path.unlink()
+                    deleted_files += 1
+            except OSError:
+                # Best effort cleanup; keep deletion moving even if file removal fails.
+                pass
+
+    delete_counts = {
+        "documents": db.documents.delete_many({"property_id": property_id}).deleted_count,
+        "ownerships": db.ownerships.delete_many({"property_id": property_id}).deleted_count,
+        "share_listings": db.share_listings.delete_many({"property_id": property_id}).deleted_count,
+        "investment_transactions": db.investment_transactions.delete_many({"property_id": property_id}).deleted_count,
+        "investor_payouts": db.investor_payouts.delete_many({"property_id": property_id}).deleted_count,
+    }
+
+    db.properties.delete_one({"_id": property_id})
+
+    return {
+        "property_id": property_id,
+        "deleted": True,
+        "deleted_files": deleted_files,
+        "deleted_records": delete_counts,
+    }

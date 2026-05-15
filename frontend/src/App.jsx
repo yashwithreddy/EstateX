@@ -3,6 +3,7 @@ import AppLayout from './layouts/AppLayout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import MarketplacePage from './pages/MarketplacePage';
+import AiSignalsPage from './pages/AiSignalsPage';
 import InvestorDashboardPage from './pages/InvestorDashboardPage';
 import PropertyOwnerPage from './pages/PropertyOwnerPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
@@ -20,6 +21,7 @@ function App() {
       <Route element={<AppLayout />}>
         <Route index element={<Navigate to="/login" replace />} />
         <Route path="/marketplace" element={<MarketplacePage />} />
+        <Route path="/ai-signals" element={<AiSignalsPage />} />
         <Route path="/properties/:id" element={<PropertyDetailsPage />} />
 
         <Route element={<ProtectedRoute allowedRoles={["investor"]} />}>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { investmentApi, propertyApi } from '../api/endpoints';
+import { aiApi, investmentApi, propertyApi } from '../api/endpoints';
 import { useAuth } from '../context/AuthContext';
 import RiskBadge from '../components/RiskBadge';
 
@@ -10,6 +10,8 @@ function PropertyDetailsPage() {
   const { id } = useParams();
   const { user, updateWallet } = useAuth();
   const [property, setProperty] = useState(null);
+  const [aiRoi, setAiRoi] = useState(null);
+  const [aiRentalYield, setAiRentalYield] = useState(null);
   const [shares, setShares] = useState(1);
   const [investing, setInvesting] = useState(false);
   const [message, setMessage] = useState('');
@@ -19,6 +21,30 @@ function PropertyDetailsPage() {
       setProperty(res.data);
     }).catch(console.error);
   }, [id]);
+
+  useEffect(() => {
+    if (!property) return;
+    const params = {
+      property_price: Number(property.property_price),
+      rental_yield: property.rental_yield,
+      demand_index: property.demand_index,
+      market_trend: property.market_trend,
+    };
+    aiApi.roi(params)
+      .then((res) => {
+        setAiRoi(res.data);
+      })
+      .catch(() => {
+        setAiRoi(null);
+      });
+    aiApi.rentalYield(params)
+      .then((res) => {
+        setAiRentalYield(res.data);
+      })
+      .catch(() => {
+        setAiRentalYield(null);
+      });
+  }, [property]);
 
   const invest = async () => {
     if (!shares || shares < 1) return;
@@ -68,6 +94,9 @@ function PropertyDetailsPage() {
     ? Math.round(((property.total_shares - property.available_shares) / property.total_shares) * 100)
     : 0;
 
+  const roiPercent = aiRoi?.predicted_roi_percent ?? property.ai_predicted_roi ?? 0;
+  const rentalYieldPercent = aiRentalYield?.predicted_rental_yield_percent ?? property.rental_yield ?? 0;
+
   return (
     <section className="space-y-5">
       <Link to="/marketplace" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800">
@@ -101,8 +130,6 @@ function PropertyDetailsPage() {
         {[
           { label: 'Total Valuation', value: INR(property.property_price), icon: '🏢', color: 'border-sky-200 bg-sky-50' },
           { label: 'Share Price', value: INR(property.price_per_share), icon: '💰', color: 'border-indigo-200 bg-indigo-50' },
-          { label: 'AI Predicted ROI', value: `${property.ai_predicted_roi}%`, icon: '📈', color: 'border-emerald-200 bg-emerald-50' },
-          { label: 'Annual Rental Yield', value: `${property.rental_yield}%`, icon: '🏘️', color: 'border-amber-200 bg-amber-50' },
         ].map((m) => (
           <div key={m.label} className={`rounded-2xl border p-4 ${m.color}`}>
             <p className="text-lg">{m.icon}</p>
@@ -140,13 +167,13 @@ function PropertyDetailsPage() {
           <div className="rounded-xl bg-emerald-50 p-3">
             <p className="text-xs text-slate-500">Est. Annual Return</p>
             <p className="text-xl font-bold text-emerald-700">
-              {INR(Number(shares) * Number(property.price_per_share) * property.ai_predicted_roi / 100)}
+              {INR(Number(shares) * Number(property.price_per_share) * roiPercent / 100)}
             </p>
           </div>
           <div className="rounded-xl bg-amber-50 p-3">
             <p className="text-xs text-slate-500">Est. Annual Rental</p>
             <p className="text-xl font-bold text-amber-700">
-              {INR(Number(shares) * Number(property.price_per_share) * property.rental_yield / 100)}
+              {INR(Number(shares) * Number(property.price_per_share) * rentalYieldPercent / 100)}
             </p>
           </div>
         </div>

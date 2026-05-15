@@ -11,7 +11,13 @@ from app.deps import require_roles
 from app.db.session import get_db
 from app.models import UserRole
 from app.schemas.admin import AdminApprovalRequest
-from app.services.admin_service import approve_property_listing, pending_documents, pending_properties, verify_document
+from app.services.admin_service import (
+    approve_property_listing,
+    delete_property_listing,
+    pending_documents,
+    pending_properties,
+    verify_document,
+)
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 logger = logging.getLogger(__name__)
@@ -73,6 +79,30 @@ def get_pending_properties(
     ]
 
 
+@router.get("/properties")
+def list_properties(
+    db: Database = Depends(get_db),
+    _: dict = Depends(require_roles(UserRole.ADMIN)),
+):
+    props = list(db.properties.find({}).sort("created_at", -1))
+    return [
+        {
+            "property_id": p["_id"],
+            "title": p.get("title"),
+            "city": p.get("city"),
+            "state": p.get("state"),
+            "image_url": p.get("image_url"),
+            "listing_status": p.get("listing_status"),
+            "is_verified": p.get("is_verified"),
+            "owner_id": p.get("owner_id"),
+            "available_shares": p.get("available_shares"),
+            "total_shares": p.get("total_shares"),
+            "created_at": p.get("created_at").isoformat() if p.get("created_at") else None,
+        }
+        for p in props
+    ]
+
+
 @router.patch("/documents/{document_id}/verify")
 def verify_uploaded_document(
     document_id: int,
@@ -98,6 +128,16 @@ def approve_listing(
         "listing_status": prop["listing_status"],
         "rejection_reason": prop.get("rejection_reason"),
     }
+
+
+@router.delete("/properties/{property_id}")
+def delete_property(
+    property_id: int,
+    db: Database = Depends(get_db),
+    admin: dict = Depends(require_roles(UserRole.ADMIN)),
+):
+    logger.info("delete_property admin_id=%s property_id=%s", admin["id"], property_id)
+    return delete_property_listing(db, property_id)
 
 
 @router.get("/properties/{property_id}/documents")

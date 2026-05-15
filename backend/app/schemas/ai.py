@@ -20,3 +20,12 @@ class RiskRequest(ROIRequest):
 class RiskResponse(BaseModel):
     risk_level: str
     probability_score: float
+
+
+class RentalYieldRequest(ROIRequest):
+    pass
+
+
+class RentalYieldResponse(BaseModel):
+    predicted_rental_yield_percent: float
+    confidence_interval: list[float]
